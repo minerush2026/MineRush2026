@@ -14,8 +14,15 @@ const user =
     username: ""
   };
 
-const $ = (id) =>
+let state = null;
+
+const $ = id =>
   document.getElementById(id);
+
+
+/* =========================
+   USER NAME
+========================= */
 
 const welcome =
   $("welcome");
@@ -25,16 +32,28 @@ if (welcome) {
     `Welcome, ${user.first_name || "Miner"}`;
 }
 
+
+/* =========================
+   API
+========================= */
+
 async function call(path, body) {
+
   try {
+
     const response =
-      await fetch(API + path, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
+      await fetch(
+        API + path,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body:
+            JSON.stringify(body)
+        }
+      );
 
     return await response.json();
 
@@ -49,20 +68,183 @@ async function call(path, body) {
   }
 }
 
-function render(userData) {
 
-  if (!userData) return;
+/* =========================
+   RENDER
+========================= */
+
+function render(u) {
+
+  if (!u) return;
+
+  state = u;
 
   const balance =
     $("balance");
 
   if (balance) {
+
     balance.textContent =
       `${Number(
-        userData.balance || 0
+        u.balance || 0
       ).toLocaleString()} MRX`;
   }
 }
+
+
+/* =========================
+   MINING TIMER
+========================= */
+
+let miningStart = null;
+
+const MAX_MINING_SECONDS =
+  12 * 60 * 60;
+
+function updateMiningTimer() {
+
+  const timer =
+    $("timer");
+
+  const progressBar =
+    $("progressBar");
+
+  const progressText =
+    $("progressText");
+
+  const miningStatus =
+    $("miningStatus");
+
+  if (!timer) return;
+
+  if (!miningStart) {
+
+    timer.textContent =
+      "12:00:00";
+
+    if (progressBar) {
+      progressBar.style.width =
+        "0%";
+    }
+
+    if (progressText) {
+      progressText.textContent =
+        "0%";
+    }
+
+    if (miningStatus) {
+      miningStatus.textContent =
+        "READY TO MINE";
+    }
+
+    return;
+  }
+
+  const elapsed =
+    Math.floor(
+      (Date.now() - miningStart) / 1000
+    );
+
+  const remaining =
+    Math.max(
+      0,
+      MAX_MINING_SECONDS - elapsed
+    );
+
+  const hours =
+    Math.floor(
+      remaining / 3600
+    );
+
+  const minutes =
+    Math.floor(
+      (remaining % 3600) / 60
+    );
+
+  const seconds =
+    remaining % 60;
+
+  timer.textContent =
+    `${String(hours).padStart(2,"0")}:` +
+    `${String(minutes).padStart(2,"0")}:` +
+    `${String(seconds).padStart(2,"0")}`;
+
+  const percentage =
+    Math.min(
+      100,
+      (elapsed /
+        MAX_MINING_SECONDS) * 100
+    );
+
+  if (progressBar) {
+    progressBar.style.width =
+      `${percentage}%`;
+  }
+
+  if (progressText) {
+    progressText.textContent =
+      `${Math.floor(percentage)}%`;
+  }
+
+  if (miningStatus) {
+
+    miningStatus.textContent =
+      remaining > 0
+        ? "MINING ACTIVE"
+        : "MINING COMPLETE";
+  }
+}
+
+
+/* =========================
+   REFERRAL DASHBOARD
+========================= */
+
+async function loadReferral() {
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/referral/${encodeURIComponent(
+          String(user.id)
+        )}`
+      );
+
+    const result =
+      await response.json();
+
+    if (!result.ok) return;
+
+    const count =
+      $("refCount");
+
+    const earned =
+      $("refEarned");
+
+    if (count) {
+      count.textContent =
+        Number(
+          result.referralCount || 0
+        ).toLocaleString();
+    }
+
+    if (earned) {
+      earned.textContent =
+        `${Number(
+          result.referralEarnings || 0
+        ).toLocaleString()} MRX`;
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Referral error:",
+      error
+    );
+  }
+}
+
 
 /* =========================
    BOOT
@@ -73,9 +255,7 @@ async function boot() {
   const result =
     await call(
       "/api/bootstrap",
-      {
-        user
-      }
+      { user }
     );
 
   if (result.ok) {
@@ -86,9 +266,27 @@ async function boot() {
       $("rate");
 
     if (rate) {
+
       rate.textContent =
         `${result.miningRate} MRX/hour`;
     }
+
+    /*
+      Server timestamp is used
+      to show a local countdown.
+    */
+
+    if (result.user.mining_started_at) {
+
+      miningStart =
+        Number(
+          result.user.mining_started_at
+        );
+    }
+
+    updateMiningTimer();
+
+    await loadReferral();
 
   } else {
 
@@ -96,6 +294,7 @@ async function boot() {
       $("status");
 
     if (status) {
+
       status.textContent =
         result.error ||
         "Unable to connect";
@@ -103,8 +302,9 @@ async function boot() {
   }
 }
 
+
 /* =========================
-   MINING
+   MINING BUTTON
 ========================= */
 
 const claim =
@@ -114,7 +314,7 @@ if (claim) {
 
   claim.addEventListener(
     "click",
-    async function () {
+    async () => {
 
       claim.disabled = true;
 
@@ -122,6 +322,7 @@ if (claim) {
         $("status");
 
       if (status) {
+
         status.textContent =
           "Processing...";
       }
@@ -139,7 +340,15 @@ if (claim) {
 
         render(result.user);
 
+        miningStart =
+          Number(
+            result.user.mining_started_at
+          );
+
+        updateMiningTimer();
+
         if (status) {
+
           status.textContent =
             "Mining claimed successfully!";
         }
@@ -147,21 +356,26 @@ if (claim) {
       } else {
 
         if (status) {
+
           status.textContent =
             result.error ||
             "Mining failed";
         }
       }
 
-      setTimeout(() => {
-        claim.disabled = false;
-      }, 700);
+      setTimeout(
+        () => {
+          claim.disabled = false;
+        },
+        700
+      );
     }
   );
 }
 
+
 /* =========================
-   DAILY BONUS
+   DAILY
 ========================= */
 
 const daily =
@@ -171,7 +385,7 @@ if (daily) {
 
   daily.addEventListener(
     "click",
-    async function () {
+    async () => {
 
       daily.disabled = true;
 
@@ -195,8 +409,7 @@ if (daily) {
       } else {
 
         alert(
-          result.error ||
-          "Daily bonus unavailable"
+          result.error
         );
       }
 
@@ -204,6 +417,7 @@ if (daily) {
     }
   );
 }
+
 
 /* =========================
    AD
@@ -216,7 +430,7 @@ if (ad) {
 
   ad.addEventListener(
     "click",
-    async function () {
+    async () => {
 
       ad.disabled = true;
 
@@ -240,8 +454,7 @@ if (ad) {
       } else {
 
         alert(
-          result.error ||
-          "Ad reward unavailable"
+          result.error
         );
       }
 
@@ -250,8 +463,9 @@ if (ad) {
   );
 }
 
+
 /* =========================
-   REFERRAL
+   REFERRAL BUTTON
 ========================= */
 
 const ref =
@@ -261,7 +475,7 @@ if (ref) {
 
   ref.addEventListener(
     "click",
-    async function () {
+    async () => {
 
       try {
 
@@ -279,7 +493,7 @@ if (ref) {
 
           alert(
             result.error ||
-            "Referral information unavailable"
+            "Referral unavailable"
           );
 
           return;
@@ -288,24 +502,27 @@ if (ref) {
         const link =
           result.referralLink;
 
-        if (
-          navigator.clipboard
-        ) {
+        /*
+          Telegram share button.
+        */
 
-          try {
-            await navigator.clipboard
-              .writeText(link);
-          } catch (e) {}
+        const shareUrl =
+          `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(
+            "⛏️ Join MineRush2026 and start mining MRX!"
+          )}`;
+
+        if (tg) {
+
+          tg.openTelegramLink(
+            shareUrl
+          );
+
+        } else {
+
+          alert(
+            `Your referral link:\n\n${link}`
+          );
         }
-
-        alert(
-          `👥 Referrals: ${result.referralCount}\n\n` +
-          `💰 Earnings: ${Number(
-            result.referralEarnings
-          ).toLocaleString()} MRX\n\n` +
-          `🎁 Per referral: ${result.referralBonus} MRX\n\n` +
-          `🔗 ${link}`
-        );
 
       } catch (error) {
 
@@ -316,6 +533,7 @@ if (ref) {
     }
   );
 }
+
 
 /* =========================
    WITHDRAW
@@ -328,7 +546,7 @@ if (withdraw) {
 
   withdraw.addEventListener(
     "click",
-    async function () {
+    async () => {
 
       const amount =
         prompt(
@@ -379,6 +597,19 @@ if (withdraw) {
   );
 }
 
-/* START */
+
+/* =========================
+   TIMER LOOP
+========================= */
+
+setInterval(
+  updateMiningTimer,
+  1000
+);
+
+
+/* =========================
+   START
+========================= */
 
 boot();

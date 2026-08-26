@@ -179,16 +179,14 @@ app.get("/api/admin/stats", admin, (_,res) => {
 
 app.get("/api/admin/withdrawals", admin, (_,res) => {
   res.json({ok:true,items:db.prepare("SELECT * FROM withdrawals ORDER BY id DESC LIMIT 200").all()});
-});
-
-app.get("/", (_, res) => {
+});app.get("/", (_, res) => {
   res.json({
     ok: true,
     service: "MineRush2026",
     status: "online",
-    message: "MineRush2026 API is running successfully 🚀"
+    message: "MineRush2026 API is running successfully"
   });
-  
+
 });
 
 app.post("/api/admin/withdrawals/:id/status", admin, (req,res) => {

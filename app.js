@@ -4,12 +4,7 @@ if (tg) {
   tg.ready();
   tg.expand();
 }
-const welcome = document.getElementById("welcome");
 
-if (welcome && user?.first_name) {
-  welcome.textContent =
-    `Welcome, ${user.first_name}`;
-}
 const API = "";
 
 const user =
@@ -19,65 +14,92 @@ const user =
     username: ""
   };
 
-let state = null;
-
-const $ = id =>
+const $ = (id) =>
   document.getElementById(id);
 
+const welcome =
+  $("welcome");
+
+if (welcome) {
+  welcome.textContent =
+    `Welcome, ${user.first_name || "Miner"}`;
+}
+
 async function call(path, body) {
+  try {
+    const response =
+      await fetch(API + path, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
 
-  const response =
-    await fetch(API + path, {
-      method: "POST",
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
-      body:
-        JSON.stringify(body)
-    });
+    return await response.json();
 
-  return response.json();
+  } catch (error) {
+
+    console.error(error);
+
+    return {
+      ok: false,
+      error: "Connection error"
+    };
+  }
 }
 
-function render(u) {
+function render(userData) {
 
-  state = u;
+  if (!userData) return;
 
-  $("balance").textContent =
-    `${Number(
-      u.balance || 0
-    ).toLocaleString()} MRX`;
+  const balance =
+    $("balance");
+
+  if (balance) {
+    balance.textContent =
+      `${Number(
+        userData.balance || 0
+      ).toLocaleString()} MRX`;
+  }
 }
+
+/* =========================
+   BOOT
+========================= */
 
 async function boot() {
 
-  try {
+  const result =
+    await call(
+      "/api/bootstrap",
+      {
+        user
+      }
+    );
 
-    const r =
-      await call(
-        "/api/bootstrap",
-        { user }
-      );
+  if (result.ok) {
 
-    if (r.ok) {
+    render(result.user);
 
-      render(r.user);
+    const rate =
+      $("rate");
 
-      $("rate").textContent =
-        `${r.miningRate} MRX/hour`;
-
-    } else {
-
-      $("status").textContent =
-        r.error ||
-        "Could not connect";
+    if (rate) {
+      rate.textContent =
+        `${result.miningRate} MRX/hour`;
     }
 
-  } catch (e) {
+  } else {
 
-    $("status").textContent =
-      "Connection error";
+    const status =
+      $("status");
+
+    if (status) {
+      status.textContent =
+        result.error ||
+        "Unable to connect";
+    }
   }
 }
 
@@ -85,12 +107,26 @@ async function boot() {
    MINING
 ========================= */
 
-$("claim").onclick =
-  async () => {
+const claim =
+  $("claim");
 
-    try {
+if (claim) {
 
-      const r =
+  claim.addEventListener(
+    "click",
+    async function () {
+
+      claim.disabled = true;
+
+      const status =
+        $("status");
+
+      if (status) {
+        status.textContent =
+          "Processing...";
+      }
+
+      const result =
         await call(
           "/api/mining/claim",
           {
@@ -99,200 +135,250 @@ $("claim").onclick =
           }
         );
 
-      if (r.ok) {
+      if (result.ok) {
 
-        render(r.user);
+        render(result.user);
 
-        $("status").textContent =
-          "Mining claimed successfully";
+        if (status) {
+          status.textContent =
+            "Mining claimed successfully!";
+        }
 
       } else {
 
-        $("status").textContent =
-          r.error;
+        if (status) {
+          status.textContent =
+            result.error ||
+            "Mining failed";
+        }
       }
 
-    } catch (e) {
-
-      $("status").textContent =
-        "Connection error";
+      setTimeout(() => {
+        claim.disabled = false;
+      }, 700);
     }
-  };
+  );
+}
 
 /* =========================
-   DAILY
+   DAILY BONUS
 ========================= */
 
-$("daily").onclick =
-  async () => {
+const daily =
+  $("daily");
 
-    const r =
-      await call(
-        "/api/daily",
-        {
-          telegram_id:
-            String(user.id)
-        }
-      );
+if (daily) {
 
-    if (r.ok) {
+  daily.addEventListener(
+    "click",
+    async function () {
 
-      render(r.user);
+      daily.disabled = true;
 
-      alert(
-        `+${r.amount} MRX daily bonus!`
-      );
+      const result =
+        await call(
+          "/api/daily",
+          {
+            telegram_id:
+              String(user.id)
+          }
+        );
 
-    } else {
+      if (result.ok) {
 
-      alert(
-        r.error ||
-        "Daily bonus unavailable"
-      );
+        render(result.user);
+
+        alert(
+          `🎁 +${result.amount} MRX Daily Bonus!`
+        );
+
+      } else {
+
+        alert(
+          result.error ||
+          "Daily bonus unavailable"
+        );
+      }
+
+      daily.disabled = false;
     }
-  };
+  );
+}
 
 /* =========================
    AD
 ========================= */
 
-$("ad").onclick =
-  async () => {
+const ad =
+  $("ad");
 
-    const r =
-      await call(
-        "/api/ad/reward",
-        {
-          telegram_id:
-            String(user.id)
-        }
-      );
+if (ad) {
 
-    if (r.ok) {
+  ad.addEventListener(
+    "click",
+    async function () {
 
-      render(r.user);
+      ad.disabled = true;
 
-      alert(
-        `+${r.amount} MRX ad reward`
-      );
+      const result =
+        await call(
+          "/api/ad/reward",
+          {
+            telegram_id:
+              String(user.id)
+          }
+        );
 
-    } else {
+      if (result.ok) {
 
-      alert(r.error);
+        render(result.user);
+
+        alert(
+          `📺 +${result.amount} MRX`
+        );
+
+      } else {
+
+        alert(
+          result.error ||
+          "Ad reward unavailable"
+        );
+      }
+
+      ad.disabled = false;
     }
-  };
+  );
+}
 
 /* =========================
    REFERRAL
 ========================= */
 
-$("ref").onclick =
-  async () => {
+const ref =
+  $("ref");
 
-    try {
+if (ref) {
 
-      const response =
-        await fetch(
-          `/api/referral/${encodeURIComponent(
-            String(user.id)
-          )}`
-        );
+  ref.addEventListener(
+    "click",
+    async function () {
 
-      const r =
-        await response.json();
+      try {
 
-      if (!r.ok) {
+        const response =
+          await fetch(
+            `/api/referral/${encodeURIComponent(
+              String(user.id)
+            )}`
+          );
+
+        const result =
+          await response.json();
+
+        if (!result.ok) {
+
+          alert(
+            result.error ||
+            "Referral information unavailable"
+          );
+
+          return;
+        }
+
+        const link =
+          result.referralLink;
+
+        if (
+          navigator.clipboard
+        ) {
+
+          try {
+            await navigator.clipboard
+              .writeText(link);
+          } catch (e) {}
+        }
+
         alert(
-          r.error ||
-          "Referral information unavailable"
+          `👥 Referrals: ${result.referralCount}\n\n` +
+          `💰 Earnings: ${Number(
+            result.referralEarnings
+          ).toLocaleString()} MRX\n\n` +
+          `🎁 Per referral: ${result.referralBonus} MRX\n\n` +
+          `🔗 ${link}`
         );
-        return;
+
+      } catch (error) {
+
+        alert(
+          "Referral system unavailable"
+        );
       }
-
-      const link =
-        r.referralLink;
-
-      if (
-        navigator.clipboard
-      ) {
-
-        await navigator.clipboard
-          .writeText(link);
-      }
-
-      alert(
-        `👥 Your Referrals: ${r.referralCount}\n\n` +
-        `💰 Referral Earnings: ${Number(
-          r.referralEarnings
-        ).toLocaleString()} MRX\n\n` +
-        `🎁 Reward per referral: ${r.referralBonus} MRX\n\n` +
-        `🔗 Your Referral Link:\n${link}`
-      );
-
-    } catch (e) {
-
-      alert(
-        "Could not load referral information"
-      );
     }
-  };
+  );
+}
 
 /* =========================
    WITHDRAW
 ========================= */
 
-$("withdraw").onclick =
-  async () => {
+const withdraw =
+  $("withdraw");
 
-    const amount =
-      prompt(
-        "USDT amount (minimum 10):",
-        "10"
-      );
+if (withdraw) {
 
-    if (!amount) {
-      return;
+  withdraw.addEventListener(
+    "click",
+    async function () {
+
+      const amount =
+        prompt(
+          "USDT amount (minimum 10):",
+          "10"
+        );
+
+      if (!amount) return;
+
+      const wallet =
+        prompt(
+          "USDT TRC20 wallet address:"
+        );
+
+      if (!wallet) return;
+
+      const result =
+        await call(
+          "/api/withdraw",
+          {
+            telegram_id:
+              String(user.id),
+
+            amount_usdt:
+              Number(amount),
+
+            wallet:
+              wallet.trim()
+          }
+        );
+
+      if (result.ok) {
+
+        render(result.user);
+
+        alert(
+          `💸 Withdrawal #${result.withdrawal_id} submitted.`
+        );
+
+      } else {
+
+        alert(
+          result.error ||
+          "Withdrawal failed"
+        );
+      }
     }
+  );
+}
 
-    const wallet =
-      prompt(
-        "USDT TRC20 wallet address:"
-      );
-
-    if (!wallet) {
-      return;
-    }
-
-    const r =
-      await call(
-        "/api/withdraw",
-        {
-          telegram_id:
-            String(user.id),
-
-          amount_usdt:
-            Number(amount),
-
-          wallet:
-            wallet.trim()
-        }
-      );
-
-    if (r.ok) {
-
-      render(r.user);
-
-      alert(
-        `Withdrawal #${r.withdrawal_id} submitted.`
-      );
-
-    } else {
-
-      alert(
-        r.error ||
-        "Withdrawal failed"
-      );
-    }
-  };
+/* START */
 
 boot();

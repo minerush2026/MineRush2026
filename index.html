@@ -2,41 +2,162 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+  >
+
   <title>MineRush2026</title>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+
   <main class="app">
+
     <section class="hero">
-      <div class="brand">⛏️ MineRush2026</div>
-      <div class="pill">FREE MINING</div>
-      <h1 id="balance">0 MRX</h1>
-      <p>Virtual reward points</p>
+
+      <div class="top">
+
+        <div class="brand">
+          ⛏️ MineRush2026
+        </div>
+
+        <div class="pill">
+          FREE MINING
+        </div>
+
+      </div>
+
+      <div class="user">
+        <span id="username">Loading...</span>
+      </div>
+
+      <h1 id="balance">
+        0 MRX
+      </h1>
+
+      <p>
+        Your virtual mining balance
+      </p>
+
     </section>
+
 
     <section class="card mining">
-      <div>
-        <b>Mining rate</b>
-        <span id="rate">10 MRX/hour</span>
+
+      <div class="row">
+
+        <div>
+          <small>
+            Mining rate
+          </small>
+
+          <strong id="rate">
+            10 MRX/hour
+          </strong>
+        </div>
+
+        <div class="mine-icon">
+          ⛏️
+        </div>
+
       </div>
-      <button id="claim">Claim Mining</button>
-      <small id="status">Ready</small>
+
+      <button id="claim">
+        ⛏️ Claim Mining
+      </button>
+
+      <small id="status">
+        Connecting...
+      </small>
+
     </section>
+
 
     <section class="grid">
-      <button class="card action" id="daily">🎁 Daily Bonus</button>
-      <button class="card action" id="ad">📺 Watch Ad</button>
-      <button class="card action" id="ref">👥 Invite Friends</button>
-      <button class="card action" id="withdraw">💸 Withdraw</button>
+
+      <button class="card action" id="daily">
+        <span>🎁</span>
+        <b>Daily Bonus</b>
+        <small>+100 MRX</small>
+      </button>
+
+
+      <button class="card action" id="ad">
+        <span>📺</span>
+        <b>Watch Ad</b>
+        <small>Earn MRX</small>
+      </button>
+
+
+      <button class="card action" id="ref">
+        <span>👥</span>
+        <b>Invite Friends</b>
+        <small>Get referral link</small>
+      </button>
+
+
+      <button class="card action" id="withdraw">
+        <span>💸</span>
+        <b>Withdraw</b>
+        <small>Minimum 10 USDT</small>
+      </button>
+
     </section>
 
-    <section class="card">
-      <h3>How it works</h3>
-      <p>Start mining, claim MRX, complete rewards and invite friends. MRX is an in-app virtual points balance.</p>
+
+    <section class="card info">
+
+      <h3>
+        📊 Account
+      </h3>
+
+      <div class="info-row">
+        <span>Telegram ID</span>
+        <strong id="telegramId">-</strong>
+      </div>
+
+      <div class="info-row">
+        <span>Balance</span>
+        <strong id="miniBalance">0 MRX</strong>
+      </div>
+
     </section>
+
+
+    <section class="card">
+
+      <h3>
+        ℹ️ How it works
+      </h3>
+
+      <p>
+        Start mining and come back later to claim your MRX.
+        You can also claim the daily bonus, complete rewards
+        and invite friends.
+      </p>
+
+      <p class="warning">
+        MRX is a virtual in-app reward point.
+      </p>
+
+    </section>
+
   </main>
+
+
+  <div id="loading" class="loading hidden">
+    <div class="loader"></div>
+    <span>Please wait...</span>
+  </div>
+
+
   <script src="app.js"></script>
+
 </body>
 </html>

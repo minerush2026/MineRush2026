@@ -4,7 +4,12 @@ if (tg) {
   tg.ready();
   tg.expand();
 }
+const welcome = document.getElementById("welcome");
 
+if (welcome && user?.first_name) {
+  welcome.textContent =
+    `Welcome, ${user.first_name}`;
+}
 const API = "";
 
 const user =

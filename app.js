@@ -5,332 +5,239 @@ if (tg) {
   tg.expand();
 }
 
-const API = "https://minerush2026-1.onrender.com";
+const API = "";
 
-const telegramUser =
-  tg?.initDataUnsafe?.user || null;
+const user =
+  tg?.initDataUnsafe?.user || {
+    id: "demo-" + Date.now(),
+    first_name: "Demo",
+    username: ""
+  };
 
 let state = null;
 
-const $ = (id) =>
+const $ = id =>
   document.getElementById(id);
 
-function setLoading(show) {
-  const loading = $("loading");
+async function call(path, body) {
 
-  if (!loading) return;
+  const response =
+    await fetch(API + path, {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+      body:
+        JSON.stringify(body)
+    });
 
-  loading.classList.toggle(
-    "hidden",
-    !show
-  );
+  return response.json();
 }
 
-function setStatus(message) {
-  $("status").textContent = message;
-}
+function render(u) {
 
-function render(user) {
-  state = user;
-
-  const balance =
-    Number(user.balance || 0);
+  state = u;
 
   $("balance").textContent =
-    `${balance.toLocaleString()} MRX`;
-
-  $("miniBalance").textContent =
-    `${balance.toLocaleString()} MRX`;
-}
-
-async function call(path, body) {
-  try {
-    const response = await fetch(
-      API + path,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify(body)
-      }
-    );
-
-    const data =
-      await response.json();
-
-    return data;
-
-  } catch (error) {
-
-    return {
-      ok: false,
-      error:
-        "Unable to connect to MineRush2026 server"
-    };
-  }
+    `${Number(
+      u.balance || 0
+    ).toLocaleString()} MRX`;
 }
 
 async function boot() {
 
-  if (!telegramUser) {
+  try {
 
-    $("username").textContent =
-      "Open this app inside Telegram";
+    const r =
+      await call(
+        "/api/bootstrap",
+        { user }
+      );
 
-    $("telegramId").textContent =
-      "Not available";
+    if (r.ok) {
 
-    setStatus(
-      "Please open MineRush2026 from Telegram"
-    );
+      render(r.user);
 
-    return;
+      $("rate").textContent =
+        `${r.miningRate} MRX/hour`;
+
+    } else {
+
+      $("status").textContent =
+        r.error ||
+        "Could not connect";
+    }
+
+  } catch (e) {
+
+    $("status").textContent =
+      "Connection error";
   }
-
-  $("username").textContent =
-    telegramUser.first_name ||
-    telegramUser.username ||
-    "Telegram User";
-
-  $("telegramId").textContent =
-    String(telegramUser.id);
-
-  setLoading(true);
-
-  const result =
-    await call(
-      "/api/bootstrap",
-      {
-        user: telegramUser
-      }
-    );
-
-  setLoading(false);
-
-  if (!result.ok) {
-
-    setStatus(
-      result.error ||
-      "Could not connect"
-    );
-
-    return;
-  }
-
-  render(result.user);
-
-  $("rate").textContent =
-    `${result.miningRate} MRX/hour`;
-
-  setStatus(
-    "Mining is ready"
-  );
 }
 
+/* =========================
+   MINING
+========================= */
+
 $("claim").onclick =
-  async function () {
+  async () => {
 
-    if (!telegramUser) {
-      setStatus(
-        "Open the app inside Telegram"
-      );
-      return;
+    try {
+
+      const r =
+        await call(
+          "/api/mining/claim",
+          {
+            telegram_id:
+              String(user.id)
+          }
+        );
+
+      if (r.ok) {
+
+        render(r.user);
+
+        $("status").textContent =
+          "Mining claimed successfully";
+
+      } else {
+
+        $("status").textContent =
+          r.error;
+      }
+
+    } catch (e) {
+
+      $("status").textContent =
+        "Connection error";
     }
-
-    $("claim").disabled = true;
-
-    setLoading(true);
-
-    setStatus(
-      "Checking mining..."
-    );
-
-    const result =
-      await call(
-        "/api/mining/claim",
-        {
-          telegram_id:
-            String(telegramUser.id)
-        }
-      );
-
-    setLoading(false);
-
-    $("claim").disabled = false;
-
-    if (!result.ok) {
-
-      setStatus(
-        result.error ||
-        "Mining claim failed"
-      );
-
-      return;
-    }
-
-    render(result.user);
-
-    setStatus(
-      "Mining claimed successfully ⛏️"
-    );
   };
 
+/* =========================
+   DAILY
+========================= */
 
 $("daily").onclick =
-  async function () {
+  async () => {
 
-    if (!telegramUser) {
-      setStatus(
-        "Open the app inside Telegram"
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    const result =
+    const r =
       await call(
         "/api/daily",
         {
           telegram_id:
-            String(telegramUser.id)
+            String(user.id)
         }
       );
 
-    setLoading(false);
+    if (r.ok) {
 
-    if (!result.ok) {
+      render(r.user);
 
       alert(
-        result.error ||
+        `+${r.amount} MRX daily bonus!`
+      );
+
+    } else {
+
+      alert(
+        r.error ||
         "Daily bonus unavailable"
       );
-
-      return;
     }
-
-    render(result.user);
-
-    alert(
-      `🎁 +${result.amount} MRX daily bonus!`
-    );
   };
 
+/* =========================
+   AD
+========================= */
 
 $("ad").onclick =
-  async function () {
+  async () => {
 
-    if (!telegramUser) {
-      setStatus(
-        "Open the app inside Telegram"
-      );
-      return;
-    }
-
-    const confirmed =
-      confirm(
-        "Watch an ad to receive the current MVP reward?"
-      );
-
-    if (!confirmed) return;
-
-    setLoading(true);
-
-    const result =
+    const r =
       await call(
         "/api/ad/reward",
         {
           telegram_id:
-            String(telegramUser.id)
+            String(user.id)
         }
       );
 
-    setLoading(false);
+    if (r.ok) {
 
-    if (!result.ok) {
+      render(r.user);
 
       alert(
-        result.error ||
-        "Ad reward failed"
+        `+${r.amount} MRX ad reward`
       );
 
-      return;
+    } else {
+
+      alert(r.error);
     }
-
-    render(result.user);
-
-    alert(
-      `📺 +${result.amount} MRX reward!`
-    );
   };
 
+/* =========================
+   REFERRAL
+========================= */
 
 $("ref").onclick =
-  async function () {
-
-    if (!telegramUser) {
-      setStatus(
-        "Open the app inside Telegram"
-      );
-      return;
-    }
-
-    const link =
-      `https://t.me/MineRush2026_bot?start=ref_${telegramUser.id}`;
+  async () => {
 
     try {
 
-      if (
-        navigator.clipboard &&
-        navigator.clipboard.writeText
-      ) {
-        await navigator.clipboard.writeText(
-          link
+      const response =
+        await fetch(
+          `/api/referral/${encodeURIComponent(
+            String(user.id)
+          )}`
         );
-      }
 
-      if (tg) {
+      const r =
+        await response.json();
 
-        tg.showPopup({
-          title: "Referral Link",
-          message: link,
-          buttons: [
-            {
-              id: "ok",
-              type: "ok",
-              text: "Done"
-            }
-          ]
-        });
-
-      } else {
-
+      if (!r.ok) {
         alert(
-          `Your referral link:\n\n${link}`
+          r.error ||
+          "Referral information unavailable"
         );
+        return;
       }
 
-    } catch (error) {
+      const link =
+        r.referralLink;
+
+      if (
+        navigator.clipboard
+      ) {
+
+        await navigator.clipboard
+          .writeText(link);
+      }
 
       alert(
-        `Your referral link:\n\n${link}`
+        `👥 Your Referrals: ${r.referralCount}\n\n` +
+        `💰 Referral Earnings: ${Number(
+          r.referralEarnings
+        ).toLocaleString()} MRX\n\n` +
+        `🎁 Reward per referral: ${r.referralBonus} MRX\n\n` +
+        `🔗 Your Referral Link:\n${link}`
+      );
+
+    } catch (e) {
+
+      alert(
+        "Could not load referral information"
       );
     }
   };
 
+/* =========================
+   WITHDRAW
+========================= */
 
 $("withdraw").onclick =
-  async function () {
-
-    if (!telegramUser) {
-      setStatus(
-        "Open the app inside Telegram"
-      );
-      return;
-    }
+  async () => {
 
     const amount =
       prompt(
@@ -338,81 +245,49 @@ $("withdraw").onclick =
         "10"
       );
 
-    if (!amount) return;
-
-    const numericAmount =
-      Number(amount);
-
-    if (
-      !Number.isFinite(numericAmount) ||
-      numericAmount < 10
-    ) {
-
-      alert(
-        "Minimum withdrawal is 10 USDT"
-      );
-
+    if (!amount) {
       return;
     }
 
     const wallet =
       prompt(
-        "Enter your USDT TRC20 wallet address:"
+        "USDT TRC20 wallet address:"
       );
 
-    if (!wallet) return;
-
-    if (wallet.trim().length < 20) {
-
-      alert(
-        "Please enter a valid wallet address"
-      );
-
+    if (!wallet) {
       return;
     }
 
-    const confirmed =
-      confirm(
-        `Submit withdrawal of ${numericAmount} USDT?`
-      );
-
-    if (!confirmed) return;
-
-    setLoading(true);
-
-    const result =
+    const r =
       await call(
         "/api/withdraw",
         {
           telegram_id:
-            String(telegramUser.id),
+            String(user.id),
 
           amount_usdt:
-            numericAmount,
+            Number(amount),
 
           wallet:
             wallet.trim()
         }
       );
 
-    setLoading(false);
+    if (r.ok) {
 
-    if (!result.ok) {
+      render(r.user);
 
       alert(
-        result.error ||
-        "Withdrawal failed"
+        `Withdrawal #${r.withdrawal_id} submitted.`
       );
 
-      return;
+    } else {
+
+      alert(
+        r.error ||
+        "Withdrawal failed"
+      );
     }
-
-    render(result.user);
-
-    alert(
-      `Withdrawal #${result.withdrawal_id} submitted successfully.`
-    );
   };
-
 
 boot();

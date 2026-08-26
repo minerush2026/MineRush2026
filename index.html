@@ -8,7 +8,6 @@
   <title>MineRush2026</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -29,6 +28,8 @@
     </div>
   </section>
 
+
+  <!-- BALANCE -->
 
   <section class="balance-card">
 
@@ -52,7 +53,7 @@
       </div>
 
       <div class="stat">
-        <span>Mining limit</span>
+        <span>Mining cycle</span>
         <b>12 hours</b>
       </div>
 
@@ -61,87 +62,245 @@
   </section>
 
 
+  <!-- MINING -->
+
   <section class="mining-card">
 
     <div class="section-title">
+
       <span>⛏️</span>
+
       <div>
         <h2>Mining</h2>
         <p>Earn MRX automatically</p>
       </div>
-    </div>
-
-    <div class="mining-circle">
-
-      <div class="pickaxe">
-        ⛏️
-      </div>
-
-      <div class="mining-text">
-        <strong id="miningStatus">
-          READY
-        </strong>
-
-        <small id="status">
-          Start mining to earn MRX
-        </small>
-      </div>
 
     </div>
 
-    <button class="main-btn" id="claim">
+
+    <div class="mining-panel">
+
+      <div class="mining-circle">
+
+        <div class="pickaxe">
+          ⛏️
+        </div>
+
+      </div>
+
+
+      <div class="timer-area">
+
+        <div class="timer-label">
+          MINING TIME
+        </div>
+
+        <div class="timer" id="timer">
+          12:00:00
+        </div>
+
+        <div class="timer-status" id="miningStatus">
+          READY TO MINE
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="progress-box">
+
+      <div class="progress-info">
+        <span>Mining progress</span>
+        <b id="progressText">0%</b>
+      </div>
+
+      <div class="progress">
+        <div
+          id="progressBar"
+          class="progress-bar"
+          style="width:0%">
+        </div>
+      </div>
+
+    </div>
+
+
+    <button
+      class="main-btn"
+      id="claim">
       ⛏️ CLAIM MINING
     </button>
 
+    <div
+      class="status"
+      id="status">
+      Start mining to earn MRX
+    </div>
+
   </section>
 
+
+  <!-- REFERRAL -->
+
+  <section class="referral-card">
+
+    <div class="section-title">
+
+      <span>👥</span>
+
+      <div>
+        <h2>Referral Program</h2>
+        <p>Invite friends and earn MRX</p>
+      </div>
+
+    </div>
+
+
+    <div class="referral-stats">
+
+      <div class="ref-stat">
+
+        <span>Referrals</span>
+
+        <strong id="refCount">
+          0
+        </strong>
+
+      </div>
+
+
+      <div class="ref-stat">
+
+        <span>Earned</span>
+
+        <strong id="refEarned">
+          0 MRX
+        </strong>
+
+      </div>
+
+    </div>
+
+
+    <div class="referral-reward">
+
+      🎁
+
+      <div>
+
+        <strong>
+          500 MRX per referral
+        </strong>
+
+        <small>
+          Earn when a new user joins through your link
+        </small>
+
+      </div>
+
+    </div>
+
+
+    <button
+      class="ref-btn"
+      id="ref">
+      👥 INVITE FRIENDS
+    </button>
+
+  </section>
+
+
+  <!-- QUICK ACTIONS -->
 
   <section class="quick-grid">
 
-    <button class="action-card" id="daily">
-      <span class="action-icon">🎁</span>
-      <strong>Daily Bonus</strong>
-      <small>+100 MRX</small>
+    <button
+      class="action-card"
+      id="daily">
+
+      <span class="action-icon">
+        🎁
+      </span>
+
+      <strong>
+        Daily Bonus
+      </strong>
+
+      <small>
+        +100 MRX
+      </small>
+
     </button>
 
-    <button class="action-card" id="ad">
-      <span class="action-icon">📺</span>
-      <strong>Watch Ad</strong>
-      <small>Earn MRX</small>
+
+    <button
+      class="action-card"
+      id="ad">
+
+      <span class="action-icon">
+        📺
+      </span>
+
+      <strong>
+        Watch Ad
+      </strong>
+
+      <small>
+        Earn MRX
+      </small>
+
     </button>
 
-    <button class="action-card" id="ref">
-      <span class="action-icon">👥</span>
-      <strong>Invite Friends</strong>
-      <small>+500 MRX</small>
-    </button>
 
-    <button class="action-card" id="withdraw">
-      <span class="action-icon">💸</span>
-      <strong>Withdraw</strong>
-      <small>Min 10 USDT</small>
+    <button
+      class="action-card"
+      id="withdraw">
+
+      <span class="action-icon">
+        💸
+      </span>
+
+      <strong>
+        Withdraw
+      </strong>
+
+      <small>
+        Min 10 USDT
+      </small>
+
     </button>
 
   </section>
 
 
+  <!-- HOW IT WORKS -->
+
   <section class="info-card">
 
-    <h3>🚀 How MineRush works</h3>
+    <h3>
+      🚀 How MineRush works
+    </h3>
 
     <div class="info-row">
       <span>⛏️</span>
-      <p>Start mining and collect MRX every hour.</p>
+      <p>
+        Start mining and collect MRX every hour.
+      </p>
     </div>
 
     <div class="info-row">
       <span>🎁</span>
-      <p>Claim your daily bonus every 24 hours.</p>
+      <p>
+        Claim your daily bonus every 24 hours.
+      </p>
     </div>
 
     <div class="info-row">
       <span>👥</span>
-      <p>Invite friends and earn 500 MRX for each valid referral.</p>
+      <p>
+        Invite friends and earn 500 MRX for each valid referral.
+      </p>
     </div>
 
   </section>
@@ -156,4 +315,111 @@
 <script src="app.js"></script>
 
 </body>
-</html>
+  </html>M
+My Workspace
+
+
+k
+MineRush2026-1
+
+Your free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
+Upgrade now
+
+Application logs
+Search
+Search logs
+
+
+Last hour
+
+
+
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running 'yarn start'
+yarn run v1.22.22
+$ node server.js
+MineRush2026 API listening on :10000
+MineRush2026 frontend enabled
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://minerush2026-1.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+Telegram webhook: configured
+Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running 'yarn start'
+yarn run v1.22.22
+$ node server.js
+MineRush2026 API listening on :10000
+MineRush2026 frontend enabled
+Telegram webhook: configured
+Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://minerush2026-1.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running 'yarn start'
+yarn run v1.22.22
+$ node server.js
+MineRush2026 API listening on :10000
+MineRush2026 frontend enabled
+Telegram webhook: configured
+Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://minerush2026-1.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running 'yarn start'
+yarn run v1.22.22
+$ node server.js
+MineRush2026 API listening on :10000
+MineRush2026 frontend enabled
+Telegram webhook: configured
+Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://minerush2026-1.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running 'yarn start'
+yarn run v1.22.22
+$ node server.js
+MineRush2026 API listening on :10000
+MineRush2026 frontend enabled
+Telegram webhook: configured
+Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://minerush2026-1.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+0 services selected:
+
+Move

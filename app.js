@@ -1,50 +1,418 @@
 const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
 
-const API = ""; // same-origin when frontend is served by your reverse proxy
-const user = tg?.initDataUnsafe?.user || {id:"demo-"+Date.now(),first_name:"Demo",username:""};
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+
+const API = "https://minerush2026-1.onrender.com";
+
+const telegramUser =
+  tg?.initDataUnsafe?.user || null;
 
 let state = null;
-const $ = id => document.getElementById(id);
+
+const $ = (id) =>
+  document.getElementById(id);
+
+function setLoading(show) {
+  const loading = $("loading");
+
+  if (!loading) return;
+
+  loading.classList.toggle(
+    "hidden",
+    !show
+  );
+}
+
+function setStatus(message) {
+  $("status").textContent = message;
+}
+
+function render(user) {
+  state = user;
+
+  const balance =
+    Number(user.balance || 0);
+
+  $("balance").textContent =
+    `${balance.toLocaleString()} MRX`;
+
+  $("miniBalance").textContent =
+    `${balance.toLocaleString()} MRX`;
+}
 
 async function call(path, body) {
-  const r = await fetch(API + path, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  return r.json();
+  try {
+    const response = await fetch(
+      API + path,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(body)
+      }
+    );
+
+    const data =
+      await response.json();
+
+    return data;
+
+  } catch (error) {
+
+    return {
+      ok: false,
+      error:
+        "Unable to connect to MineRush2026 server"
+    };
+  }
 }
-function render(u){
-  state=u;
-  $("balance").textContent = `${Number(u.balance||0).toLocaleString()} MRX`;
+
+async function boot() {
+
+  if (!telegramUser) {
+
+    $("username").textContent =
+      "Open this app inside Telegram";
+
+    $("telegramId").textContent =
+      "Not available";
+
+    setStatus(
+      "Please open MineRush2026 from Telegram"
+    );
+
+    return;
+  }
+
+  $("username").textContent =
+    telegramUser.first_name ||
+    telegramUser.username ||
+    "Telegram User";
+
+  $("telegramId").textContent =
+    String(telegramUser.id);
+
+  setLoading(true);
+
+  const result =
+    await call(
+      "/api/bootstrap",
+      {
+        user: telegramUser
+      }
+    );
+
+  setLoading(false);
+
+  if (!result.ok) {
+
+    setStatus(
+      result.error ||
+      "Could not connect"
+    );
+
+    return;
+  }
+
+  render(result.user);
+
+  $("rate").textContent =
+    `${result.miningRate} MRX/hour`;
+
+  setStatus(
+    "Mining is ready"
+  );
 }
-async function boot(){
-  const r=await call("/api/bootstrap",{user});
-  if(r.ok){render(r.user);$("rate").textContent=`${r.miningRate} MRX/hour`;}
-  else $("status").textContent=r.error||"Could not connect";
-}
-$("claim").onclick=async()=>{
-  const r=await call("/api/mining/claim",{telegram_id:String(user.id)});
-  if(r.ok){render(r.user);$("status").textContent="Mining claimed successfully";}
-  else $("status").textContent=r.error;
-};
-$("daily").onclick=async()=>{
-  const r=await call("/api/daily",{telegram_id:String(user.id)});
-  if(r.ok){render(r.user);alert(`+${r.amount} MRX daily bonus!`)} else alert(r.error);
-};
-$("ad").onclick=async()=>{
-  // Replace this MVP action with your verified Adsterra reward flow.
-  const r=await call("/api/ad/reward",{telegram_id:String(user.id)});
-  if(r.ok){render(r.user);alert(`+${r.amount} MRX ad reward (MVP)`)} else alert(r.error);
-};
-$("ref").onclick=()=>{
-  const link=`https://t.me/MineRush2026_bot?start=ref_${user.id}`;
-  if(navigator.clipboard) navigator.clipboard.writeText(link);
-  alert(`Your referral link:\n${link}`);
-};
-$("withdraw").onclick=async()=>{
-  const amount=prompt("USDT amount (minimum 10):","10");
-  if(!amount)return;
-  const wallet=prompt("USDT TRC20 wallet address:");
-  if(!wallet)return;
-  const r=await call("/api/withdraw",{telegram_id:String(user.id),amount_usdt:Number(amount),wallet});
-  if(r.ok){render(r.user);alert(`Withdrawal #${r.withdrawal_id} submitted.`)} else alert(r.error);
-};
+
+$("claim").onclick =
+  async function () {
+
+    if (!telegramUser) {
+      setStatus(
+        "Open the app inside Telegram"
+      );
+      return;
+    }
+
+    $("claim").disabled = true;
+
+    setLoading(true);
+
+    setStatus(
+      "Checking mining..."
+    );
+
+    const result =
+      await call(
+        "/api/mining/claim",
+        {
+          telegram_id:
+            String(telegramUser.id)
+        }
+      );
+
+    setLoading(false);
+
+    $("claim").disabled = false;
+
+    if (!result.ok) {
+
+      setStatus(
+        result.error ||
+        "Mining claim failed"
+      );
+
+      return;
+    }
+
+    render(result.user);
+
+    setStatus(
+      "Mining claimed successfully ⛏️"
+    );
+  };
+
+
+$("daily").onclick =
+  async function () {
+
+    if (!telegramUser) {
+      setStatus(
+        "Open the app inside Telegram"
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    const result =
+      await call(
+        "/api/daily",
+        {
+          telegram_id:
+            String(telegramUser.id)
+        }
+      );
+
+    setLoading(false);
+
+    if (!result.ok) {
+
+      alert(
+        result.error ||
+        "Daily bonus unavailable"
+      );
+
+      return;
+    }
+
+    render(result.user);
+
+    alert(
+      `🎁 +${result.amount} MRX daily bonus!`
+    );
+  };
+
+
+$("ad").onclick =
+  async function () {
+
+    if (!telegramUser) {
+      setStatus(
+        "Open the app inside Telegram"
+      );
+      return;
+    }
+
+    const confirmed =
+      confirm(
+        "Watch an ad to receive the current MVP reward?"
+      );
+
+    if (!confirmed) return;
+
+    setLoading(true);
+
+    const result =
+      await call(
+        "/api/ad/reward",
+        {
+          telegram_id:
+            String(telegramUser.id)
+        }
+      );
+
+    setLoading(false);
+
+    if (!result.ok) {
+
+      alert(
+        result.error ||
+        "Ad reward failed"
+      );
+
+      return;
+    }
+
+    render(result.user);
+
+    alert(
+      `📺 +${result.amount} MRX reward!`
+    );
+  };
+
+
+$("ref").onclick =
+  async function () {
+
+    if (!telegramUser) {
+      setStatus(
+        "Open the app inside Telegram"
+      );
+      return;
+    }
+
+    const link =
+      `https://t.me/MineRush2026_bot?start=ref_${telegramUser.id}`;
+
+    try {
+
+      if (
+        navigator.clipboard &&
+        navigator.clipboard.writeText
+      ) {
+        await navigator.clipboard.writeText(
+          link
+        );
+      }
+
+      if (tg) {
+
+        tg.showPopup({
+          title: "Referral Link",
+          message: link,
+          buttons: [
+            {
+              id: "ok",
+              type: "ok",
+              text: "Done"
+            }
+          ]
+        });
+
+      } else {
+
+        alert(
+          `Your referral link:\n\n${link}`
+        );
+      }
+
+    } catch (error) {
+
+      alert(
+        `Your referral link:\n\n${link}`
+      );
+    }
+  };
+
+
+$("withdraw").onclick =
+  async function () {
+
+    if (!telegramUser) {
+      setStatus(
+        "Open the app inside Telegram"
+      );
+      return;
+    }
+
+    const amount =
+      prompt(
+        "USDT amount (minimum 10):",
+        "10"
+      );
+
+    if (!amount) return;
+
+    const numericAmount =
+      Number(amount);
+
+    if (
+      !Number.isFinite(numericAmount) ||
+      numericAmount < 10
+    ) {
+
+      alert(
+        "Minimum withdrawal is 10 USDT"
+      );
+
+      return;
+    }
+
+    const wallet =
+      prompt(
+        "Enter your USDT TRC20 wallet address:"
+      );
+
+    if (!wallet) return;
+
+    if (wallet.trim().length < 20) {
+
+      alert(
+        "Please enter a valid wallet address"
+      );
+
+      return;
+    }
+
+    const confirmed =
+      confirm(
+        `Submit withdrawal of ${numericAmount} USDT?`
+      );
+
+    if (!confirmed) return;
+
+    setLoading(true);
+
+    const result =
+      await call(
+        "/api/withdraw",
+        {
+          telegram_id:
+            String(telegramUser.id),
+
+          amount_usdt:
+            numericAmount,
+
+          wallet:
+            wallet.trim()
+        }
+      );
+
+    setLoading(false);
+
+    if (!result.ok) {
+
+      alert(
+        result.error ||
+        "Withdrawal failed"
+      );
+
+      return;
+    }
+
+    render(result.user);
+
+    alert(
+      `Withdrawal #${result.withdrawal_id} submitted successfully.`
+    );
+  };
+
+
 boot();

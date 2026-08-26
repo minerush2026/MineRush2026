@@ -188,6 +188,8 @@ app.get("/", (_, res) => {
     status: "online",
     message: "MineRush2026 API is running successfully 🚀"
   });
+  
+});
 
 app.post("/api/admin/withdrawals/:id/status", admin, (req,res) => {
   const id = Number(req.params.id);

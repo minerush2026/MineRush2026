@@ -1,1 +1,938 @@
-<!doctype html><html><head><meta charset="utf-8"><title>MineRush Admin</title><style>body{font-family:system-ui;max-width:900px;margin:30px auto;padding:15px;background:#0d1324;color:#fff}.box{background:#151e34;padding:18px;border-radius:15px;margin:12px 0}button,input{padding:10px;border-radius:8px;border:0;margin:4px}button{cursor:pointer}</style></head><body><h1>MineRush2026 Admin</h1><input id="key" placeholder="Admin key" type="password"><button onclick="load()">Load stats</button><div id="out"></div><script>async function load(){const k=document.getElementById('key').value;const h={'x-admin-key':k};const s=await fetch('/api/admin/stats',{headers:h}).then(r=>r.json());const w=await fetch('/api/admin/withdrawals',{headers:h}).then(r=>r.json());document.getElementById('out').innerHTML='<div class=box>Users: '+(s.users||0)+'<br>Pending withdrawals: '+(s.pendingWithdrawals||0)+'<br>Total MRX: '+(s.totalMRX||0)+'</div><div class=box><pre>'+JSON.stringify(w.items||w,null,2)+'</pre></div>'}</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>MineRush2026 Admin</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .login-box,
+    .panel {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: 0;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    input,
+    select {
+      background: #334155;
+      color: white;
+      outline: none;
+    }
+
+    button {
+      background: #22c55e;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .danger {
+      background: #ef4444;
+    }
+
+    .warning {
+      background: #f59e0b;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .stat-title {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .stat-value {
+      font-size: 25px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #334155;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      color: #94a3b8;
+    }
+
+    .status {
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+
+    .pending {
+      background: #92400e;
+    }
+
+    .paid {
+      background: #166534;
+    }
+
+    .rejected {
+      background: #991b1b;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions button {
+      width: auto;
+      margin: 0;
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #message {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .success {
+      background: #166534;
+    }
+
+    .error {
+      background: #991b1b;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🚀 MineRush2026 Admin</h1>
+
+  <!-- LOGIN -->
+
+  <div id="loginBox" class="login-box">
+
+    <h2>🔐 Admin Login</h2>
+
+    <input
+      id="adminKey"
+      type="password"
+      placeholder="Enter ADMIN_KEY"
+      autocomplete="off"
+    >
+
+    <button onclick="login()">
+      Login
+    </button>
+
+    <div id="loginMessage"></div>
+
+  </div>
+
+  <!-- DASHBOARD -->
+
+  <div id="dashboard" class="hidden">
+
+    <div class="panel">
+
+      <button
+        class="danger"
+        onclick="logout()"
+      >
+        Logout
+      </button>
+
+      <button onclick="loadAll()">
+        🔄 Refresh Dashboard
+      </button>
+
+    </div>
+
+    <!-- STATS -->
+
+    <div class="stats">
+
+      <div class="stat">
+
+        <div class="stat-title">
+          👥 Total Users
+        </div>
+
+        <div
+          id="totalUsers"
+          class="stat-value"
+        >
+          0
+        </div>
+
+      </div>
+
+      <div class="stat">
+
+        <div class="stat-title">
+          💰 Total MRX
+        </div>
+
+        <div
+          id="totalMRX"
+          class="stat-value"
+        >
+          0
+        </div>
+
+      </div>
+
+      <div class="stat">
+
+        <div class="stat-title">
+          ⏳ Pending Withdrawals
+        </div>
+
+        <div
+          id="pendingWithdrawals"
+          class="stat-value"
+        >
+          0
+        </div>
+
+      </div>
+
+      <div class="stat">
+
+        <div class="stat-title">
+          💵 Paid USDT
+        </div>
+
+        <div
+          id="paidUSDT"
+          class="stat-value"
+        >
+          0
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- USERS -->
+
+    <div class="panel">
+
+      <h2>👥 Users</h2>
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+
+            <tr>
+              <th>ID</th>
+              <th>Telegram ID</th>
+              <th>Username</th>
+              <th>Name</th>
+              <th>Balance</th>
+              <th>Referrals</th>
+              <th>Referral Earnings</th>
+              <th>Created</th>
+            </tr>
+
+          </thead>
+
+          <tbody id="usersTable">
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+    <!-- WITHDRAWALS -->
+
+    <div class="panel">
+
+      <h2>💸 Withdrawals</h2>
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Amount</th>
+              <th>Wallet</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+
+          </thead>
+
+          <tbody id="withdrawalsTable">
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+"use strict";
+
+const API = "";
+
+let adminKey = "";
+
+function showMessage(
+  element,
+  message,
+  type
+) {
+
+  element.textContent = message;
+
+  element.className = type;
+
+  element.style.display = "block";
+
+}
+
+function login() {
+
+  const key =
+    document
+      .getElementById("adminKey")
+      .value
+      .trim();
+
+  if (!key) {
+
+    showMessage(
+      document.getElementById(
+        "loginMessage"
+      ),
+      "Please enter ADMIN_KEY",
+      "error"
+    );
+
+    return;
+  }
+
+  adminKey = key;
+
+  testAdmin();
+
+}
+
+async function testAdmin() {
+
+  try {
+
+    const response =
+      await fetch(
+        `${API}/api/admin/test`,
+        {
+          method: "GET",
+          headers: {
+            "x-admin-key":
+              adminKey
+          }
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok || !data.ok) {
+
+      throw new Error(
+        data.error ||
+        "Invalid ADMIN_KEY"
+      );
+
+    }
+
+    localStorage.setItem(
+      "minerush_admin_key",
+      adminKey
+    );
+
+    document
+      .getElementById("loginBox")
+      .classList.add("hidden");
+
+    document
+      .getElementById("dashboard")
+      .classList.remove("hidden");
+
+    loadAll();
+
+  } catch (error) {
+
+    adminKey = "";
+
+    showMessage(
+      document.getElementById(
+        "loginMessage"
+      ),
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+function logout() {
+
+  adminKey = "";
+
+  localStorage.removeItem(
+    "minerush_admin_key"
+  );
+
+  location.reload();
+
+}
+
+async function api(
+  url,
+  options = {}
+) {
+
+  const headers = {
+
+    ...(options.headers || {}),
+
+    "x-admin-key":
+      adminKey
+
+  };
+
+  const response =
+    await fetch(
+      url,
+      {
+        ...options,
+        headers
+      }
+    );
+
+  const data =
+    await response.json();
+
+  if (
+    !response.ok ||
+    !data.ok
+  ) {
+
+    throw new Error(
+      data.error ||
+      "Request failed"
+    );
+
+  }
+
+  return data;
+
+}
+
+async function loadStats() {
+
+  const data =
+    await api(
+      `${API}/api/admin/stats`
+    );
+
+  document
+    .getElementById(
+      "totalUsers"
+    )
+    .textContent =
+      Number(
+        data.users || 0
+      ).toLocaleString();
+
+  document
+    .getElementById(
+      "totalMRX"
+    )
+    .textContent =
+      Number(
+        data.totalMRX || 0
+      ).toLocaleString(
+        undefined,
+        {
+          maximumFractionDigits: 4
+        }
+      );
+
+  document
+    .getElementById(
+      "pendingWithdrawals"
+    )
+    .textContent =
+      Number(
+        data.pendingWithdrawals ||
+        0
+      ).toLocaleString();
+
+  document
+    .getElementById(
+      "paidUSDT"
+    )
+    .textContent =
+      Number(
+        data.totalPaidUSDT ||
+        0
+      ).toFixed(2);
+
+}
+
+async function loadUsers() {
+
+  const data =
+    await api(
+      `${API}/api/admin/users`
+    );
+
+  const tbody =
+    document.getElementById(
+      "usersTable"
+    );
+
+  tbody.innerHTML = "";
+
+  for (
+    const user of data.users
+  ) {
+
+    const tr =
+      document.createElement(
+        "tr"
+      );
+
+    tr.innerHTML = `
+
+      <td>${escapeHTML(
+        user.id
+      )}</td>
+
+      <td>${escapeHTML(
+        user.telegram_id
+      )}</td>
+
+      <td>
+        ${
+          user.username
+            ? "@" +
+              escapeHTML(
+                user.username
+              )
+            : "-"
+        }
+      </td>
+
+      <td>${escapeHTML(
+        user.first_name || "-"
+      )}</td>
+
+      <td>
+        ${Number(
+          user.balance || 0
+        ).toLocaleString(
+          undefined,
+          {
+            maximumFractionDigits: 4
+          }
+        )}
+      </td>
+
+      <td>
+        ${Number(
+          user.referral_count || 0
+        )}
+      </td>
+
+      <td>
+        ${Number(
+          user.referral_earnings ||
+          0
+        ).toLocaleString()}
+      </td>
+
+      <td>
+        ${formatDate(
+          user.created_at
+        )}
+      </td>
+
+    `;
+
+    tbody.appendChild(tr);
+
+  }
+
+}
+
+async function loadWithdrawals() {
+
+  const data =
+    await api(
+      `${API}/api/admin/withdrawals`
+    );
+
+  const tbody =
+    document.getElementById(
+      "withdrawalsTable"
+    );
+
+  tbody.innerHTML = "";
+
+  for (
+    const item of data.items
+  ) {
+
+    const tr =
+      document.createElement(
+        "tr"
+      );
+
+    const status =
+      String(
+        item.status || ""
+      );
+
+    let actions = "-";
+
+    if (
+      status === "pending"
+    ) {
+
+      actions = `
+
+        <div class="actions">
+
+          <button
+            onclick="updateWithdrawal(
+              ${Number(item.id)},
+              'paid'
+            )"
+          >
+            ✅ Paid
+          </button>
+
+          <button
+            class="danger"
+            onclick="updateWithdrawal(
+              ${Number(item.id)},
+              'rejected'
+            )"
+          >
+            ❌ Reject
+          </button>
+
+        </div>
+
+      `;
+
+    }
+
+    tr.innerHTML = `
+
+      <td>
+        #${escapeHTML(
+          item.id
+        )}
+      </td>
+
+      <td>
+        ${
+          item.username
+            ? "@" +
+              escapeHTML(
+                item.username
+              )
+            : escapeHTML(
+                item.first_name ||
+                item.telegram_id
+              )
+        }
+      </td>
+
+      <td>
+        ${Number(
+          item.amount_usdt || 0
+        ).toFixed(2)}
+        USDT
+      </td>
+
+      <td>
+        ${escapeHTML(
+          item.wallet
+        )}
+      </td>
+
+      <td>
+
+        <span
+          class="status ${escapeHTML(
+            status
+          )}"
+        >
+          ${escapeHTML(
+            status
+          )}
+        </span>
+
+      </td>
+
+      <td>
+        ${formatDate(
+          item.created_at
+        )}
+      </td>
+
+      <td>
+        ${actions}
+      </td>
+
+    `;
+
+    tbody.appendChild(tr);
+
+  }
+
+}
+
+async function updateWithdrawal(
+  id,
+  status
+) {
+
+  const text =
+    status === "paid"
+      ? "Mark this withdrawal as PAID?"
+      : "Reject this withdrawal? The MRX will be refunded.";
+
+  if (!confirm(text)) {
+    return;
+  }
+
+  try {
+
+    await api(
+      `/api/admin/withdrawals/${id}/status`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+        body:
+          JSON.stringify({
+            status
+          })
+      }
+    );
+
+    await loadAll();
+
+    alert(
+      `Withdrawal #${id} is now ${status}.`
+    );
+
+  } catch (error) {
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+async function loadAll() {
+
+  try {
+
+    await loadStats();
+
+    await loadUsers();
+
+    await loadWithdrawals();
+
+  } catch (error) {
+
+    if (
+      error.message
+        .toLowerCase()
+        .includes("unauthorized")
+    ) {
+
+      logout();
+
+      return;
+
+    }
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+function formatDate(
+  timestamp
+) {
+
+  if (!timestamp) {
+    return "-";
+  }
+
+  return new Date(
+    Number(timestamp)
+  ).toLocaleString();
+
+}
+
+function escapeHTML(
+  value
+) {
+
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
+
+/* =========================
+   AUTO LOGIN
+========================= */
+
+const savedKey =
+  localStorage.getItem(
+    "minerush_admin_key"
+  );
+
+if (savedKey) {
+
+  adminKey =
+    savedKey;
+
+  testAdmin();
+
+}
+
+</script>
+
+</body>
+  </html>

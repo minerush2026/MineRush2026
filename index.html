@@ -1,381 +1,410 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8"><meta
-name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  <meta charset="UTF-8">
 
-«»
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
 
-<meta
-name="theme-color"
-content="#0b1020"
+  <meta
+    name="theme-color"
+    content="#0b1020"
+  >
 
-«»
+  <title>MineRush2026</title>
 
-  <title>MineRush2026</title>  <!-- Telegram Mini App -->  <script src="https://telegram.org/js/telegram-web-app.js"></script>  <!-- Main stylesheet -->  <link rel="stylesheet" href="/style.css">
-</head><body>  <main class="app"><!-- TOP BAR -->
-<section class="topbar">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <div>
-    <div class="brand">
-      ⛏️ MineRush2026
+  <link
+    rel="stylesheet"
+    href="/style.css"
+  >
+</head>
+
+<body>
+
+<main class="app">
+
+  <!-- TOP BAR -->
+  <section class="topbar">
+
+    <div class="brand-area">
+
+      <div class="brand">
+        ⛏️ MineRush2026
+      </div>
+
+      <div
+        class="welcome"
+        id="welcome"
+      >
+        Welcome, Miner
+      </div>
+
     </div>
 
     <div
-      class="welcome"
-      id="welcome"
+      class="avatar"
+      id="avatar"
+      aria-label="Profile"
     >
-      Welcome, Miner
-    </div>
-  </div>
-
-  <div
-    class="avatar"
-    id="avatar"
-  >
-    👤
-  </div>
-
-</section>
-
-
-<!-- BALANCE -->
-<section class="balance-card">
-
-  <div class="balance-label">
-    TOTAL BALANCE
-  </div>
-
-  <div
-    class="balance"
-    id="balance"
-  >
-    0 MRX
-  </div>
-
-  <div class="balance-sub">
-    Virtual reward points
-  </div>
-
-  <div class="stats">
-
-    <div class="stat">
-      <span>Mining rate</span>
-      <b id="rate">
-        10 MRX/hour
-      </b>
+      👤
     </div>
 
-    <div class="stat">
-      <span>Mining cycle</span>
-      <b>
-        12 hours
-      </b>
+  </section>
+
+
+  <!-- BALANCE -->
+  <section class="balance-card">
+
+    <div class="balance-label">
+      TOTAL BALANCE
     </div>
 
-  </div>
-
-</section>
-
-
-<!-- MINING -->
-<section class="mining-card">
-
-  <div class="section-title">
-
-    <span>⛏️</span>
-
-    <div>
-      <h2>Mining</h2>
-
-      <p>
-        Earn MRX automatically
-      </p>
+    <div
+      class="balance"
+      id="balance"
+    >
+      0 MRX
     </div>
 
-  </div>
+    <div class="balance-sub">
+      Virtual reward points
+    </div>
+
+    <div class="stats">
+
+      <div class="stat">
+        <span>Mining rate</span>
+
+        <b id="rate">
+          10 MRX/hour
+        </b>
+      </div>
+
+      <div class="stat">
+        <span>Mining cycle</span>
+
+        <b>
+          12 hours
+        </b>
+      </div>
+
+    </div>
+
+  </section>
 
 
-  <div class="mining-panel">
+  <!-- MINING -->
+  <section class="mining-card">
 
-    <div class="mining-circle">
+    <div class="section-title">
 
-      <div class="pickaxe">
+      <span class="section-icon">
         ⛏️
-      </div>
-
-    </div>
-
-
-    <div class="timer-area">
-
-      <div class="timer-label">
-        MINING TIME
-      </div>
-
-      <div
-        class="timer"
-        id="timer"
-      >
-        12:00:00
-      </div>
-
-      <div
-        class="timer-status"
-        id="miningStatus"
-      >
-        READY TO MINE
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <div class="progress-box">
-
-    <div class="progress-info">
-
-      <span>
-        Mining progress
       </span>
 
-      <b id="progressText">
-        0%
-      </b>
+      <div>
+        <h2>Mining</h2>
+
+        <p>
+          Earn MRX automatically
+        </p>
+      </div>
 
     </div>
 
 
-    <div class="progress">
+    <div class="mining-panel">
 
-      <div
-        id="progressBar"
-        class="progress-bar"
-        style="width:0%"
-      ></div>
+      <div class="mining-circle">
 
-    </div>
+        <div class="pickaxe">
+          ⛏️
+        </div>
 
-  </div>
+      </div>
 
+      <div class="timer-area">
 
-  <button
-    type="button"
-    class="main-btn"
-    id="claim"
-  >
-    ⛏️ CLAIM MINING
-  </button>
+        <div class="timer-label">
+          MINING TIME
+        </div>
 
+        <div
+          class="timer"
+          id="timer"
+        >
+          12:00:00
+        </div>
 
-  <div
-    class="status"
-    id="status"
-  >
-    Start mining to earn MRX
-  </div>
+        <div
+          class="timer-status"
+          id="miningStatus"
+        >
+          READY TO MINE
+        </div>
 
-</section>
-
-
-<!-- REFERRAL -->
-<section class="referral-card">
-
-  <div class="section-title">
-
-    <span>👥</span>
-
-    <div>
-
-      <h2>
-        Referral Program
-      </h2>
-
-      <p>
-        Invite friends and earn MRX
-      </p>
+      </div>
 
     </div>
 
-  </div>
+
+    <div class="progress-box">
+
+      <div class="progress-info">
+
+        <span>
+          Mining progress
+        </span>
+
+        <b id="progressText">
+          0%
+        </b>
+
+      </div>
+
+      <div class="progress">
+
+        <div
+          id="progressBar"
+          class="progress-bar"
+          style="width:0%"
+        ></div>
+
+      </div>
+
+    </div>
 
 
-  <div class="referral-stats">
+    <button
+      type="button"
+      class="main-btn"
+      id="claim"
+    >
+      ⛏️ CLAIM MINING
+    </button>
 
-    <div class="ref-stat">
 
-      <span>
-        Referrals
+    <div
+      class="status"
+      id="status"
+    >
+      Start mining to earn MRX
+    </div>
+
+  </section>
+
+
+  <!-- REFERRAL -->
+  <section class="referral-card">
+
+    <div class="section-title">
+
+      <span class="section-icon">
+        👥
       </span>
 
-      <strong id="refCount">
-        0
-      </strong>
+      <div>
+
+        <h2>
+          Referral Program
+        </h2>
+
+        <p>
+          Invite friends and earn MRX
+        </p>
+
+      </div>
 
     </div>
 
 
-    <div class="ref-stat">
+    <div class="referral-stats">
+
+      <div class="ref-stat">
+
+        <span>
+          Referrals
+        </span>
+
+        <strong id="refCount">
+          0
+        </strong>
+
+      </div>
+
+
+      <div class="ref-stat">
+
+        <span>
+          Earned
+        </span>
+
+        <strong id="refEarned">
+          0 MRX
+        </strong>
+
+      </div>
+
+    </div>
+
+
+    <div class="referral-reward">
 
       <span>
-        Earned
+        🎁
       </span>
 
-      <strong id="refEarned">
-        0 MRX
-      </strong>
+      <div>
+
+        <strong>
+          500 MRX per referral
+        </strong>
+
+        <small>
+          Earn when a new user joins through your link
+        </small>
+
+      </div>
 
     </div>
 
-  </div>
+
+    <button
+      type="button"
+      class="ref-btn"
+      id="ref"
+    >
+      👥 INVITE FRIENDS
+    </button>
+
+  </section>
 
 
-  <div class="referral-reward">
+  <!-- QUICK ACTIONS -->
+  <section class="quick-grid">
 
-    <span>🎁</span>
+    <button
+      type="button"
+      class="action-card"
+      id="daily"
+    >
 
-    <div>
+      <span class="action-icon">
+        🎁
+      </span>
 
       <strong>
-        500 MRX per referral
+        Daily Bonus
       </strong>
 
       <small>
-        Earn when a new user joins through your link
+        +100 MRX
       </small>
+
+    </button>
+
+
+    <button
+      type="button"
+      class="action-card"
+      id="ad"
+    >
+
+      <span class="action-icon">
+        📺
+      </span>
+
+      <strong>
+        Watch Ad
+      </strong>
+
+      <small>
+        +25 MRX
+      </small>
+
+    </button>
+
+
+    <button
+      type="button"
+      class="action-card action-wide"
+      id="withdraw"
+    >
+
+      <span class="action-icon">
+        💸
+      </span>
+
+      <strong>
+        Withdraw
+      </strong>
+
+      <small>
+        Min 10 USDT
+      </small>
+
+    </button>
+
+  </section>
+
+
+  <!-- HOW IT WORKS -->
+  <section class="info-card">
+
+    <h3>
+      🚀 How MineRush works
+    </h3>
+
+
+    <div class="info-row">
+
+      <span>⛏️</span>
+
+      <p>
+        Start mining and collect MRX every hour.
+      </p>
 
     </div>
 
-  </div>
+
+    <div class="info-row">
+
+      <span>🎁</span>
+
+      <p>
+        Claim your daily bonus every 24 hours.
+      </p>
+
+    </div>
 
 
-  <button
-    type="button"
-    class="ref-btn"
-    id="ref"
-  >
-    👥 INVITE FRIENDS
-  </button>
+    <div class="info-row">
 
-</section>
+      <span>👥</span>
 
+      <p>
+        Invite friends and earn 500 MRX for each valid referral.
+      </p>
 
-<!-- QUICK ACTIONS -->
-<section class="quick-grid">
+    </div>
 
-  <button
-    type="button"
-    class="action-card"
-    id="daily"
-  >
-
-    <span class="action-icon">
-      🎁
-    </span>
-
-    <strong>
-      Daily Bonus
-    </strong>
-
-    <small>
-      +100 MRX
-    </small>
-
-  </button>
+  </section>
 
 
-  <button
-    type="button"
-    class="action-card"
-    id="ad"
-  >
+  <!-- FOOTER -->
+  <footer>
+    MineRush2026 • Virtual Reward System
+  </footer>
 
-    <span class="action-icon">
-      📺
-    </span>
-
-    <strong>
-      Watch Ad
-    </strong>
-
-    <small>
-      +25 MRX
-    </small>
-
-  </button>
+</main>
 
 
-  <button
-    type="button"
-    class="action-card"
-    id="withdraw"
-  >
+<script src="/app.js"></script>
 
-    <span class="action-icon">
-      💸
-    </span>
-
-    <strong>
-      Withdraw
-    </strong>
-
-    <small>
-      Min 10 USDT
-    </small>
-
-  </button>
-
-</section>
-
-
-<!-- HOW IT WORKS -->
-<section class="info-card">
-
-  <h3>
-    🚀 How MineRush works
-  </h3>
-
-
-  <div class="info-row">
-
-    <span>⛏️</span>
-
-    <p>
-      Start mining and collect MRX every hour.
-    </p>
-
-  </div>
-
-
-  <div class="info-row">
-
-    <span>🎁</span>
-
-    <p>
-      Claim your daily bonus every 24 hours.
-    </p>
-
-  </div>
-
-
-  <div class="info-row">
-
-    <span>👥</span>
-
-    <p>
-      Invite friends and earn 500 MRX for each valid referral.
-    </p>
-
-  </div>
-
-</section>
-
-
-<!-- FOOTER -->
-<footer>
-  MineRush2026 • Virtual Reward System
-</footer>
-
-  </main>  <!-- Main application JavaScript -->  <script src="/app.js"></script></body>
+</body>
 </html>

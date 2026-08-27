@@ -1269,7 +1269,67 @@ function getBangladeshDate() {
   );
 }
 
-app.post(
+app.post(/* =====================================================
+   ADMIN KEY DEBUG
+===================================================== */
+/* =====================================================
+   ADMIN KEY DEBUG
+===================================================== */
+
+app.get(
+  "/api/admin/key-test",
+  (req, res) => {
+
+    const configured =
+      Boolean(ADMIN_KEY);
+
+    const received =
+      String(
+        req.headers["x-admin-key"] || ""
+      ).trim();
+
+    const matches =
+      Boolean(
+        configured &&
+        received &&
+        received === ADMIN_KEY
+      );
+
+    res.json({
+      ok: matches,
+      adminKeyConfigured: configured,
+      keyReceived: Boolean(received),
+      keyMatches: matches
+    });
+  }
+);
+app.get(
+  "/api/admin/key-test",
+  (req, res) => {
+
+    const configured =
+      Boolean(ADMIN_KEY);
+
+    const received =
+      String(
+        req.headers["x-admin-key"] || ""
+      ).trim();
+
+    const matches =
+      Boolean(
+        configured &&
+        received &&
+        received === ADMIN_KEY
+      );
+
+    res.json({
+      ok: matches,
+      adminKeyConfigured: configured,
+      keyReceived: Boolean(received),
+      keyMatches: matches
+    });
+  }
+);
   "/api/daily",
   (req, res) => {
 

@@ -1,425 +1,381 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b1020">
+  <meta charset="UTF-8"><meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover"
 
-  <title>MineRush2026</title>
+«»
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css">
-</head>
+<meta
+name="theme-color"
+content="#0b1020"
 
-<body>
+«»
 
-<main class="app">
+  <title>MineRush2026</title>  <!-- Telegram Mini App -->  <script src="https://telegram.org/js/telegram-web-app.js"></script>  <!-- Main stylesheet -->  <link rel="stylesheet" href="/style.css">
+</head><body>  <main class="app"><!-- TOP BAR -->
+<section class="topbar">
 
-  <section class="topbar">
-    <div>
-      <div class="brand">⛏️ MineRush2026</div>
-      <div class="welcome" id="welcome">
-        Welcome, Miner
-      </div>
+  <div>
+    <div class="brand">
+      ⛏️ MineRush2026
     </div>
-
-    <div class="avatar" id="avatar">
-      👤
-    </div>
-  </section>
-
-
-  <!-- BALANCE -->
-
-  <section class="balance-card">
-
-    <div class="balance-label">
-      TOTAL BALANCE
-    </div>
-
-    <div class="balance" id="balance">
-      0 MRX
-    </div>
-
-    <div class="balance-sub">
-      Virtual reward points
-    </div>
-
-    <div class="stats">
-
-      <div class="stat">
-        <span>Mining rate</span>
-        <b id="rate">10 MRX/hour</b>
-      </div>
-
-      <div class="stat">
-        <span>Mining cycle</span>
-        <b>12 hours</b>
-      </div>
-
-    </div>
-
-  </section>
-
-
-  <!-- MINING -->
-
-  <section class="mining-card">
-
-    <div class="section-title">
-
-      <span>⛏️</span>
-
-      <div>
-        <h2>Mining</h2>
-        <p>Earn MRX automatically</p>
-      </div>
-
-    </div>
-
-
-    <div class="mining-panel">
-
-      <div class="mining-circle">
-
-        <div class="pickaxe">
-          ⛏️
-        </div>
-
-      </div>
-
-
-      <div class="timer-area">
-
-        <div class="timer-label">
-          MINING TIME
-        </div>
-
-        <div class="timer" id="timer">
-          12:00:00
-        </div>
-
-        <div class="timer-status" id="miningStatus">
-          READY TO MINE
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <div class="progress-box">
-
-      <div class="progress-info">
-        <span>Mining progress</span>
-        <b id="progressText">0%</b>
-      </div>
-
-      <div class="progress">
-        <div
-          id="progressBar"
-          class="progress-bar"
-          style="width:0%">
-        </div>
-      </div>
-
-    </div>
-
-
-    <button
-      class="main-btn"
-      id="claim">
-      ⛏️ CLAIM MINING
-    </button>
 
     <div
-      class="status"
-      id="status">
-      Start mining to earn MRX
+      class="welcome"
+      id="welcome"
+    >
+      Welcome, Miner
+    </div>
+  </div>
+
+  <div
+    class="avatar"
+    id="avatar"
+  >
+    👤
+  </div>
+
+</section>
+
+
+<!-- BALANCE -->
+<section class="balance-card">
+
+  <div class="balance-label">
+    TOTAL BALANCE
+  </div>
+
+  <div
+    class="balance"
+    id="balance"
+  >
+    0 MRX
+  </div>
+
+  <div class="balance-sub">
+    Virtual reward points
+  </div>
+
+  <div class="stats">
+
+    <div class="stat">
+      <span>Mining rate</span>
+      <b id="rate">
+        10 MRX/hour
+      </b>
     </div>
 
-  </section>
+    <div class="stat">
+      <span>Mining cycle</span>
+      <b>
+        12 hours
+      </b>
+    </div>
+
+  </div>
+
+</section>
 
 
-  <!-- REFERRAL -->
+<!-- MINING -->
+<section class="mining-card">
 
-  <section class="referral-card">
+  <div class="section-title">
 
-    <div class="section-title">
+    <span>⛏️</span>
 
-      <span>👥</span>
+    <div>
+      <h2>Mining</h2>
 
-      <div>
-        <h2>Referral Program</h2>
-        <p>Invite friends and earn MRX</p>
+      <p>
+        Earn MRX automatically
+      </p>
+    </div>
+
+  </div>
+
+
+  <div class="mining-panel">
+
+    <div class="mining-circle">
+
+      <div class="pickaxe">
+        ⛏️
       </div>
 
     </div>
 
 
-    <div class="referral-stats">
+    <div class="timer-area">
 
-      <div class="ref-stat">
-
-        <span>Referrals</span>
-
-        <strong id="refCount">
-          0
-        </strong>
-
+      <div class="timer-label">
+        MINING TIME
       </div>
 
+      <div
+        class="timer"
+        id="timer"
+      >
+        12:00:00
+      </div>
 
-      <div class="ref-stat">
-
-        <span>Earned</span>
-
-        <strong id="refEarned">
-          0 MRX
-        </strong>
-
+      <div
+        class="timer-status"
+        id="miningStatus"
+      >
+        READY TO MINE
       </div>
 
     </div>
 
+  </div>
 
-    <div class="referral-reward">
 
+  <div class="progress-box">
+
+    <div class="progress-info">
+
+      <span>
+        Mining progress
+      </span>
+
+      <b id="progressText">
+        0%
+      </b>
+
+    </div>
+
+
+    <div class="progress">
+
+      <div
+        id="progressBar"
+        class="progress-bar"
+        style="width:0%"
+      ></div>
+
+    </div>
+
+  </div>
+
+
+  <button
+    type="button"
+    class="main-btn"
+    id="claim"
+  >
+    ⛏️ CLAIM MINING
+  </button>
+
+
+  <div
+    class="status"
+    id="status"
+  >
+    Start mining to earn MRX
+  </div>
+
+</section>
+
+
+<!-- REFERRAL -->
+<section class="referral-card">
+
+  <div class="section-title">
+
+    <span>👥</span>
+
+    <div>
+
+      <h2>
+        Referral Program
+      </h2>
+
+      <p>
+        Invite friends and earn MRX
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div class="referral-stats">
+
+    <div class="ref-stat">
+
+      <span>
+        Referrals
+      </span>
+
+      <strong id="refCount">
+        0
+      </strong>
+
+    </div>
+
+
+    <div class="ref-stat">
+
+      <span>
+        Earned
+      </span>
+
+      <strong id="refEarned">
+        0 MRX
+      </strong>
+
+    </div>
+
+  </div>
+
+
+  <div class="referral-reward">
+
+    <span>🎁</span>
+
+    <div>
+
+      <strong>
+        500 MRX per referral
+      </strong>
+
+      <small>
+        Earn when a new user joins through your link
+      </small>
+
+    </div>
+
+  </div>
+
+
+  <button
+    type="button"
+    class="ref-btn"
+    id="ref"
+  >
+    👥 INVITE FRIENDS
+  </button>
+
+</section>
+
+
+<!-- QUICK ACTIONS -->
+<section class="quick-grid">
+
+  <button
+    type="button"
+    class="action-card"
+    id="daily"
+  >
+
+    <span class="action-icon">
       🎁
+    </span>
 
-      <div>
+    <strong>
+      Daily Bonus
+    </strong>
 
-        <strong>
-          500 MRX per referral
-        </strong>
+    <small>
+      +100 MRX
+    </small>
 
-        <small>
-          Earn when a new user joins through your link
-        </small>
-
-      </div>
-
-    </div>
+  </button>
 
 
-    <button
-      class="ref-btn"
-      id="ref">
-      👥 INVITE FRIENDS
-    </button>
+  <button
+    type="button"
+    class="action-card"
+    id="ad"
+  >
 
-  </section>
+    <span class="action-icon">
+      📺
+    </span>
 
+    <strong>
+      Watch Ad
+    </strong>
 
-  <!-- QUICK ACTIONS -->
+    <small>
+      +25 MRX
+    </small>
 
-  <section class="quick-grid">
-
-    <button
-      class="action-card"
-      id="daily">
-
-      <span class="action-icon">
-        🎁
-      </span>
-
-      <strong>
-        Daily Bonus
-      </strong>
-
-      <small>
-        +100 MRX
-      </small>
-
-    </button>
+  </button>
 
 
-    <button
-      class="action-card"
-      id="ad">
+  <button
+    type="button"
+    class="action-card"
+    id="withdraw"
+  >
 
-      <span class="action-icon">
-        📺
-      </span>
+    <span class="action-icon">
+      💸
+    </span>
 
-      <strong>
-        Watch Ad
-      </strong>
+    <strong>
+      Withdraw
+    </strong>
 
-      <small>
-        Earn MRX
-      </small>
+    <small>
+      Min 10 USDT
+    </small>
 
-    </button>
+  </button>
 
-
-    <button
-      class="action-card"
-      id="withdraw">
-
-      <span class="action-icon">
-        💸
-      </span>
-
-      <strong>
-        Withdraw
-      </strong>
-
-      <small>
-        Min 10 USDT
-      </small>
-
-    </button>
-
-  </section>
+</section>
 
 
-  <!-- HOW IT WORKS -->
+<!-- HOW IT WORKS -->
+<section class="info-card">
 
-  <section class="info-card">
-
-    <h3>
-      🚀 How MineRush works
-    </h3>
-
-    <div class="info-row">
-      <span>⛏️</span>
-      <p>
-        Start mining and collect MRX every hour.
-      </p>
-    </div>
-
-    <div class="info-row">
-      <span>🎁</span>
-      <p>
-        Claim your daily bonus every 24 hours.
-      </p>
-    </div>
-
-    <div class="info-row">
-      <span>👥</span>
-      <p>
-        Invite friends and earn 500 MRX for each valid referral.
-      </p>
-    </div>
-
-  </section>
+  <h3>
+    🚀 How MineRush works
+  </h3>
 
 
-  <footer>
-    MineRush2026 • Virtual Reward System
-  </footer>
+  <div class="info-row">
 
-</main>
+    <span>⛏️</span>
 
-<script src="app.js"></script>
+    <p>
+      Start mining and collect MRX every hour.
+    </p>
 
-</body>
-  </html>M
-My Workspace
+  </div>
 
 
-k
-MineRush2026-1
+  <div class="info-row">
 
-Your free instance will spin down with inactivity, which can delay requests by 50 seconds or more.
-Upgrade now
+    <span>🎁</span>
 
-Application logs
-Search
-Search logs
+    <p>
+      Claim your daily bonus every 24 hours.
+    </p>
 
-
-Last hour
+  </div>
 
 
+  <div class="info-row">
 
-==> Detected service running on port 10000
-==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
-==> Running 'yarn start'
-yarn run v1.22.22
-$ node server.js
-MineRush2026 API listening on :10000
-MineRush2026 frontend enabled
-==> Your service is live 🎉
-==> 
-==> ///////////////////////////////////////////////////////////
-==> 
-==> Available at your primary URL https://minerush2026-1.onrender.com
-==> 
-==> ///////////////////////////////////////////////////////////
-Telegram webhook: configured
-Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
-==> Detected service running on port 10000
-==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
-==> Running 'yarn start'
-yarn run v1.22.22
-$ node server.js
-MineRush2026 API listening on :10000
-MineRush2026 frontend enabled
-Telegram webhook: configured
-Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
-==> Your service is live 🎉
-==> 
-==> ///////////////////////////////////////////////////////////
-==> 
-==> Available at your primary URL https://minerush2026-1.onrender.com
-==> 
-==> ///////////////////////////////////////////////////////////
-==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
-==> Running 'yarn start'
-yarn run v1.22.22
-$ node server.js
-MineRush2026 API listening on :10000
-MineRush2026 frontend enabled
-Telegram webhook: configured
-Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
-==> Your service is live 🎉
-==> 
-==> ///////////////////////////////////////////////////////////
-==> 
-==> Available at your primary URL https://minerush2026-1.onrender.com
-==> 
-==> ///////////////////////////////////////////////////////////
-==> Detected service running on port 10000
-==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
-==> Running 'yarn start'
-yarn run v1.22.22
-$ node server.js
-MineRush2026 API listening on :10000
-MineRush2026 frontend enabled
-Telegram webhook: configured
-Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
-==> Your service is live 🎉
-==> 
-==> ///////////////////////////////////////////////////////////
-==> 
-==> Available at your primary URL https://minerush2026-1.onrender.com
-==> 
-==> ///////////////////////////////////////////////////////////
-==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
-==> Running 'yarn start'
-yarn run v1.22.22
-$ node server.js
-MineRush2026 API listening on :10000
-MineRush2026 frontend enabled
-Telegram webhook: configured
-Webhook URL: https://minerush2026-1.onrender.com/telegram/webhook
-==> Your service is live 🎉
-==> 
-==> ///////////////////////////////////////////////////////////
-==> 
-==> Available at your primary URL https://minerush2026-1.onrender.com
-==> 
-==> ///////////////////////////////////////////////////////////
-0 services selected:
+    <span>👥</span>
 
-Move
+    <p>
+      Invite friends and earn 500 MRX for each valid referral.
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- FOOTER -->
+<footer>
+  MineRush2026 • Virtual Reward System
+</footer>
+
+  </main>  <!-- Main application JavaScript -->  <script src="/app.js"></script></body>
+</html>

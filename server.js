@@ -10,12 +10,49 @@ dotenv.config();
 
 const app = express();
 
-/* =====================================================
-   PATH
-===================================================== */
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const PORT = Number(process.env.PORT || 10000);
+
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+
+const APP_URL =
+  process.env.APP_URL ||
+  "https://minerush2026-1.onrender.com";
+
+const BOT_USERNAME =
+  process.env.BOT_USERNAME ||
+  "MineRush2026_bot";
+
+/* =====================================================
+   SETTINGS
+===================================================== */
+
+const MRX_PER_HOUR =
+  Number(process.env.MRX_PER_HOUR || 10);
+
+const AD_REWARD =
+  Number(process.env.MRX_PER_AD || 25);
+
+const REFERRAL_BONUS =
+  Number(process.env.REFERRAL_BONUS_MRX || 500);
+
+const MIN_WITHDRAW_USDT =
+  Number(process.env.MIN_WITHDRAW_USDT || 10);
+
+const MRX_PER_USDT = 1000;
+
+const AD_WATCH_SECONDS = 30;
+
+const AD_COOLDOWN_MS =
+  5 * 60 * 1000;
+
+const MAX_MINING_SECONDS =
+  12 * 60 * 60;
+
+const AD_URL =
+  "https://www.profitableratecpmnetwork.com/twctf2wz?key=804533b9d3b330dbd99ce3caee91c75f";
 
 /* =====================================================
    MIDDLEWARE
@@ -29,222 +66,124 @@ app.use(
   })
 );
 
-app.use(express.static(__dirname));
+/*
+   IMPORTANT:
+   DO NOT use:
+   express.static(__dirname)
+
+   কারণ এতে server.js/database/package files
+   browser থেকে দেখা যেতে পারে।
+*/
 
 /* =====================================================
-   PORT
+   SAFE FRONTEND FILES ONLY
 ===================================================== */
 
-const PORT = Number(
-  process.env.PORT || 3000
-);
+app.get("/", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "index.html")
+  );
+});
 
-/* =====================================================
-   ENVIRONMENT
-===================================================== */
+app.get("/style.css", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "style.css")
+  );
+});
 
-const BOT_TOKEN =
-  process.env.TELEGRAM_BOT_TOKEN || "";
+app.get("/app.js", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "app.js")
+  );
+});
 
-const APP_URL =
-  (
-    process.env.APP_URL ||
-    "https://minerush2026-1.onrender.com"
-  ).replace(/\/+$/, "");
+/*
+   Sensitive files block
+*/
 
-const BOT_USERNAME =
-  (
-    process.env.BOT_USERNAME ||
-    "MineRush2026_bot"
-  ).replace(/^@/, "");
+app.use((req, res, next) => {
 
-/* =====================================================
-   ADSTERRA SMARTLINK
-===================================================== */
+  const blocked = [
+    "/server.js",
+    "/package.json",
+    "/package-lock.json",
+    "/yarn.lock",
+    "/minerush.sqlite",
+    "/minerush.sqlite-shm",
+    "/minerush.sqlite-wal",
+    "/.env"
+  ];
 
-const AD_URL =
-  "https://www.profitableratecpmnetwork.com/twctf2wz?key=804533b9d3b330dbd99ce3caee91c75f";
+  if (blocked.includes(req.path)) {
+    return res.status(404).send("Not Found");
+  }
+
+  next();
+});
 
 /* =====================================================
    DATABASE
 ===================================================== */
 
-const DB_FILE =
-  process.env.DB_FILE ||
-  "./minerush.sqlite";
-
-const db =
-  new Database(DB_FILE);
+const db = new Database(
+  process.env.DB_FILE || "./minerush.sqlite"
+);
 
 db.pragma("journal_mode = WAL");
-db.pragma("busy_timeout = 5000");
-db.pragma("foreign_keys = ON");
+
+const now = () => Date.now();
 
 /* =====================================================
-   TIME
-===================================================== */
-
-const now = () =>
-  Date.now();
-
-/* =====================================================
-   GAME SETTINGS
-===================================================== */
-
-const MRX_PER_HOUR =
-  Number(
-    process.env.MRX_PER_HOUR || 10
-  );
-
-const AD_REWARD =
-  Number(
-    process.env.MRX_PER_AD || 25
-  );
-
-const REFERRAL_BONUS =
-  Number(
-    process.env.REFERRAL_BONUS_MRX || 500
-  );
-
-const DAILY_BONUS =
-  Number(
-    process.env.DAILY_BONUS_MRX || 100
-  );
-
-const MIN_WITHDRAW_USDT =
-  Number(
-    process.env.MIN_WITHDRAW_USDT || 10
-  );
-
-const MRX_PER_USDT =
-  Number(
-    process.env.MRX_PER_USDT || 1000
-  );
-
-const AD_WATCH_SECONDS = 30;
-
-const AD_COOLDOWN_MS =
-  5 * 60 * 1000;
-
-const MAX_MINING_SECONDS =
-  12 * 60 * 60;
-
-/* =====================================================
-   VALIDATE SETTINGS
-===================================================== */
-
-if (
-  !Number.isFinite(MRX_PER_HOUR) ||
-  MRX_PER_HOUR <= 0
-) {
-  throw new Error(
-    "Invalid MRX_PER_HOUR"
-  );
-}
-
-if (
-  !Number.isFinite(AD_REWARD) ||
-  AD_REWARD <= 0
-) {
-  throw new Error(
-    "Invalid MRX_PER_AD"
-  );
-}
-
-/* =====================================================
-   DATABASE TABLES
+   TABLES
 ===================================================== */
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  telegram_id TEXT UNIQUE NOT NULL,
+  username TEXT DEFAULT '',
+  first_name TEXT DEFAULT '',
+  balance REAL DEFAULT 0,
+  mining_started_at INTEGER,
+  last_daily_bonus TEXT,
+  referred_by TEXT,
+  referral_count INTEGER DEFAULT 0,
+  referral_earnings REAL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
 
-    telegram_id TEXT UNIQUE NOT NULL,
+CREATE TABLE IF NOT EXISTS transactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  telegram_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  amount REAL NOT NULL,
+  note TEXT DEFAULT '',
+  created_at INTEGER NOT NULL
+);
 
-    username TEXT DEFAULT '',
+CREATE TABLE IF NOT EXISTS withdrawals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  telegram_id TEXT NOT NULL,
+  amount_usdt REAL NOT NULL,
+  wallet TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  created_at INTEGER NOT NULL,
+  processed_at INTEGER
+);
 
-    first_name TEXT DEFAULT '',
-
-    balance REAL DEFAULT 0,
-
-    mining_started_at INTEGER,
-
-    last_daily_bonus TEXT,
-
-    referred_by TEXT,
-
-    referral_paid INTEGER DEFAULT 0,
-
-    referral_count INTEGER DEFAULT 0,
-
-    referral_earnings REAL DEFAULT 0,
-
-    created_at INTEGER NOT NULL,
-
-    updated_at INTEGER
-  );
-
-  CREATE TABLE IF NOT EXISTS transactions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    telegram_id TEXT NOT NULL,
-
-    type TEXT NOT NULL,
-
-    amount REAL NOT NULL,
-
-    note TEXT DEFAULT '',
-
-    created_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS withdrawals (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    telegram_id TEXT NOT NULL,
-
-    amount_usdt REAL NOT NULL,
-
-    wallet TEXT NOT NULL,
-
-    status TEXT DEFAULT 'pending',
-
-    created_at INTEGER NOT NULL,
-
-    processed_at INTEGER
-  );
-
-  CREATE TABLE IF NOT EXISTS ad_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    telegram_id TEXT NOT NULL,
-
-    token TEXT UNIQUE NOT NULL,
-
-    started_at INTEGER NOT NULL,
-
-    expires_at INTEGER NOT NULL,
-
-    claimed_at INTEGER,
-
-    status TEXT DEFAULT 'active'
-  );
-
-  CREATE INDEX IF NOT EXISTS
-  idx_transactions_user
-  ON transactions(telegram_id);
-
-  CREATE INDEX IF NOT EXISTS
-  idx_ad_sessions_token
-  ON ad_sessions(token);
-
-  CREATE INDEX IF NOT EXISTS
-  idx_withdrawals_user
-  ON withdrawals(telegram_id);
+CREATE TABLE IF NOT EXISTS ad_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  telegram_id TEXT NOT NULL,
+  token TEXT UNIQUE NOT NULL,
+  started_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  claimed_at INTEGER,
+  status TEXT DEFAULT 'active'
+);
 `);
 
 /* =====================================================
-   SAFE MIGRATION
+   DATABASE MIGRATION
 ===================================================== */
 
 function addColumnIfMissing(
@@ -252,32 +191,21 @@ function addColumnIfMissing(
   column,
   definition
 ) {
-  const columns =
-    db
-      .prepare(
-        `PRAGMA table_info(${table})`
-      )
-      .all();
+  const columns = db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all();
 
-  const exists =
-    columns.some(
-      c => c.name === column
-    );
+  const exists = columns.some(
+    c => c.name === column
+  );
 
   if (!exists) {
     db.exec(
       `ALTER TABLE ${table}
-       ADD COLUMN ${column}
-       ${definition}`
+       ADD COLUMN ${column} ${definition}`
     );
   }
 }
-
-addColumnIfMissing(
-  "users",
-  "updated_at",
-  "INTEGER"
-);
 
 addColumnIfMissing(
   "users",
@@ -291,184 +219,84 @@ addColumnIfMissing(
   "REAL DEFAULT 0"
 );
 
-addColumnIfMissing(
-  "users",
-  "referral_paid",
-  "INTEGER DEFAULT 0"
-);
-
 /* =====================================================
    USER
 ===================================================== */
 
-function normalizeTelegramUser(tg) {
+function getUser(id) {
+  return db
+    .prepare(`
+      SELECT *
+      FROM users
+      WHERE telegram_id=?
+    `)
+    .get(String(id));
+}
+
+function upsertUser(tg) {
+
   if (!tg || !tg.id) {
     throw new Error(
       "Telegram user is required"
     );
   }
 
-  return {
-    id: String(tg.id),
+  const id = String(tg.id);
 
-    username:
-      tg.username
-        ? String(tg.username)
-        : "",
-
-    first_name:
-      tg.first_name
-        ? String(tg.first_name)
-        : ""
-  };
-}
-
-function getUser(
-  telegramId
-) {
-  return db
-    .prepare(
-      `
-      SELECT *
-      FROM users
-      WHERE telegram_id = ?
-      LIMIT 1
-      `
-    )
-    .get(
-      String(telegramId)
-    );
-}
-
-/* =====================================================
-   UPSERT USER
-===================================================== */
-
-function upsertUser(tg) {
-  const user =
-    normalizeTelegramUser(tg);
-
-  const existing =
-    getUser(user.id);
-
-  const current =
-    now();
+  const existing = getUser(id);
 
   if (!existing) {
-    db.prepare(
-      `
+
+    db.prepare(`
       INSERT INTO users
       (
         telegram_id,
         username,
         first_name,
-        balance,
-        created_at,
-        updated_at
+        created_at
       )
-      VALUES (?, ?, ?, 0, ?, ?)
-      `
-    ).run(
-      user.id,
-      user.username,
-      user.first_name,
-      current,
-      current
+      VALUES (?, ?, ?, ?)
+    `).run(
+      id,
+      tg.username || "",
+      tg.first_name || "",
+      now()
     );
+
   } else {
-    db.prepare(
-      `
+
+    db.prepare(`
       UPDATE users
       SET
-        username = ?,
-        first_name = ?,
-        updated_at = ?
-      WHERE telegram_id = ?
-      `
-    ).run(
-      user.username,
-      user.first_name,
-      current,
-      user.id
+        username=?,
+        first_name=?
+      WHERE telegram_id=?
+    `).run(
+      tg.username || existing.username || "",
+      tg.first_name || existing.first_name || "",
+      id
     );
   }
 
-  return getUser(user.id);
-}
-
-/* =====================================================
-   TRANSACTION LOGGER
-===================================================== */
-
-function addTransaction(
-  telegramId,
-  type,
-  amount,
-  note = ""
-) {
-  db.prepare(
-    `
-    INSERT INTO transactions
-    (
-      telegram_id,
-      type,
-      amount,
-      note,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?)
-    `
-  ).run(
-    String(telegramId),
-    type,
-    Number(amount),
-    String(note),
-    now()
-  );
+  return getUser(id);
 }
 
 /* =====================================================
    REFERRAL
 ===================================================== */
 
-function cleanReferralCode(
-  code
-) {
-  return String(code || "")
-    .trim()
-    .replace(/^ref_/i, "");
-}
-
 function processReferral(
   newUserId,
-  referralCode
+  startParameter
 ) {
-  const newId =
-    String(newUserId);
 
-  const referrerId =
-    cleanReferralCode(
-      referralCode
-    );
+  const newId = String(newUserId);
 
-  if (!referrerId) {
-    return {
-      success: false,
-      reason: "No referral code"
-    };
+  if (!startParameter) {
+    return null;
   }
 
-  if (
-    referrerId === newId
-  ) {
-    return {
-      success: false,
-      reason: "Self referral blocked"
-    };
-  }
-
-  const newUser =
-    getUser(newId);
+  const newUser = getUser(newId);
 
   if (!newUser) {
     return {
@@ -477,16 +305,32 @@ function processReferral(
     };
   }
 
-  /*
-    IMPORTANT:
-    If user already has a referrer,
-    NEVER pay again.
-  */
-
   if (newUser.referred_by) {
     return {
       success: false,
       reason: "Already referred"
+    };
+  }
+
+  let referrerId =
+    String(startParameter).trim();
+
+  if (referrerId.startsWith("ref_")) {
+    referrerId =
+      referrerId.substring(4);
+  }
+
+  if (!/^\d+$/.test(referrerId)) {
+    return {
+      success: false,
+      reason: "Invalid referral code"
+    };
+  }
+
+  if (referrerId === newId) {
+    return {
+      success: false,
+      reason: "Self referral blocked"
     };
   }
 
@@ -500,134 +344,71 @@ function processReferral(
     };
   }
 
-  /*
-    Atomic referral transaction
-  */
+  const transaction =
+    db.transaction(() => {
 
-  try {
-    const result =
-      db.transaction(() => {
+      db.prepare(`
+        UPDATE users
+        SET referred_by=?
+        WHERE telegram_id=?
+        AND referred_by IS NULL
+      `).run(
+        referrerId,
+        newId
+      );
 
-        /*
-          Re-check inside transaction.
-          This prevents duplicate bonus
-          if two webhook requests arrive
-          at almost the same time.
-        */
+      db.prepare(`
+        UPDATE users
+        SET
+          balance=balance+?,
+          referral_count=
+            COALESCE(referral_count,0)+1,
+          referral_earnings=
+            COALESCE(referral_earnings,0)+?
+        WHERE telegram_id=?
+      `).run(
+        REFERRAL_BONUS,
+        REFERRAL_BONUS,
+        referrerId
+      );
 
-        const latest =
-          getUser(newId);
+      db.prepare(`
+        INSERT INTO transactions
+        (
+          telegram_id,
+          type,
+          amount,
+          note,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?)
+      `).run(
+        referrerId,
+        "referral",
+        REFERRAL_BONUS,
+        `Referral from ${newId}`,
+        now()
+      );
+    });
 
-        if (
-          !latest ||
-          latest.referred_by
-        ) {
-          return {
-            success: false,
-            reason: "Already referred"
-          };
-        }
+  transaction();
 
-        /*
-          Save referrer
-        */
-
-        db.prepare(
-          `
-          UPDATE users
-          SET
-            referred_by = ?,
-            updated_at = ?
-          WHERE
-            telegram_id = ?
-            AND referred_by IS NULL
-          `
-        ).run(
-          referrerId,
-          now(),
-          newId
-        );
-
-        /*
-          Give bonus
-        */
-
-        db.prepare(
-          `
-          UPDATE users
-          SET
-            balance =
-              balance + ?,
-
-            referral_count =
-              COALESCE(
-                referral_count,
-                0
-              ) + 1,
-
-            referral_earnings =
-              COALESCE(
-                referral_earnings,
-                0
-              ) + ?,
-
-            updated_at = ?
-
-          WHERE telegram_id = ?
-          `
-        ).run(
-          REFERRAL_BONUS,
-          REFERRAL_BONUS,
-          now(),
-          referrerId
-        );
-
-        /*
-          Transaction
-        */
-
-        addTransaction(
-          referrerId,
-          "referral",
-          REFERRAL_BONUS,
-          `Referral bonus from ${newId}`
-        );
-
-        return {
-          success: true,
-          referrerId,
-          bonus: REFERRAL_BONUS
-        };
-      })();
-
-    return result;
-
-  } catch (error) {
-
-    console.error(
-      "Referral transaction error:",
-      error.message
-    );
-
-    return {
-      success: false,
-      reason: "Referral processing failed"
-    };
-  }
+  return {
+    success: true,
+    referrerId,
+    bonus: REFERRAL_BONUS
+  };
 }
 
 /* =====================================================
    MINING
 ===================================================== */
 
-function claimMining(
-  telegramId
-) {
-  const id =
-    String(telegramId);
+function claimMining(userId) {
 
-  const user =
-    getUser(id);
+  const id = String(userId);
+
+  const user = getUser(id);
 
   if (!user) {
     throw new Error(
@@ -635,27 +416,19 @@ function claimMining(
     );
   }
 
-  const current =
-    now();
+  const current = now();
 
   /*
-    First mining activation
+     প্রথমবার mining শুরু
   */
 
-  if (
-    !user.mining_started_at
-  ) {
+  if (!user.mining_started_at) {
 
-    db.prepare(
-      `
+    db.prepare(`
       UPDATE users
-      SET
-        mining_started_at = ?,
-        updated_at = ?
-      WHERE telegram_id = ?
-      `
-    ).run(
-      current,
+      SET mining_started_at=?
+      WHERE telegram_id=?
+    `).run(
       current,
       id
     );
@@ -663,115 +436,64 @@ function claimMining(
     return getUser(id);
   }
 
-  const started =
-    Number(
-      user.mining_started_at
-    );
-
-  const elapsedMs =
-    Math.max(
-      0,
-      current - started
-    );
-
   const elapsedSeconds =
+    Math.floor(
+      (
+        current -
+        Number(user.mining_started_at)
+      ) / 1000
+    );
+
+  const cappedSeconds =
     Math.min(
       MAX_MINING_SECONDS,
-      Math.floor(
-        elapsedMs / 1000
-      )
+      Math.max(0, elapsedSeconds)
     );
-
-  /*
-    Calculate exact earned amount.
-    Example:
-    30 minutes =
-    10 * 0.5 = 5 MRX
-  */
 
   const earned =
     (
-      elapsedSeconds / 3600
+      cappedSeconds / 3600
     ) * MRX_PER_HOUR;
 
-  if (
-    earned <= 0
-  ) {
-    return getUser(id);
-  }
-
   /*
-    Restart mining after claim
+     12 ঘণ্টা পূর্ণ হলে নতুন cycle
+     শুরু হবে claim করার সময়।
   */
 
-  const result =
-    db.transaction(() => {
+  if (earned > 0) {
 
-      const latest =
-        getUser(id);
+    db.prepare(`
+      UPDATE users
+      SET
+        balance=balance+?,
+        mining_started_at=?
+      WHERE telegram_id=?
+    `).run(
+      earned,
+      current,
+      id
+    );
 
-      if (!latest) {
-        throw new Error(
-          "User not found"
-        );
-      }
+    db.prepare(`
+      INSERT INTO transactions
+      (
+        telegram_id,
+        type,
+        amount,
+        note,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      id,
+      "mining",
+      earned,
+      "Mining reward",
+      current
+    );
+  }
 
-      const latestStart =
-        Number(
-          latest.mining_started_at
-        );
-
-      const latestElapsed =
-        Math.max(
-          0,
-          Math.min(
-            MAX_MINING_SECONDS,
-            current - latestStart
-          )
-        );
-
-      const latestEarned =
-        (
-          latestElapsed / 3600000
-        ) * MRX_PER_HOUR;
-
-      if (
-        latestEarned <= 0
-      ) {
-        return getUser(id);
-      }
-
-      db.prepare(
-        `
-        UPDATE users
-        SET
-          balance =
-            balance + ?,
-
-          mining_started_at = ?,
-
-          updated_at = ?
-
-        WHERE telegram_id = ?
-        `
-      ).run(
-        latestEarned,
-        current,
-        current,
-        id
-      );
-
-      addTransaction(
-        id,
-        "mining",
-        latestEarned,
-        "Mining claim"
-      );
-
-      return getUser(id);
-    })();
-
-  return result;
+  return getUser(id);
 }
 
 /* =====================================================
@@ -782,6 +504,7 @@ async function telegram(
   method,
   body
 ) {
+
   if (!BOT_TOKEN) {
     throw new Error(
       "TELEGRAM_BOT_TOKEN is not configured"
@@ -793,14 +516,11 @@ async function telegram(
       `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
       {
         method: "POST",
-
         headers: {
           "Content-Type":
             "application/json"
         },
-
-        body:
-          JSON.stringify(body)
+        body: JSON.stringify(body)
       }
     );
 
@@ -825,10 +545,6 @@ app.post(
   "/telegram/webhook",
   async (req, res) => {
 
-    /*
-      Respond immediately to Telegram.
-    */
-
     res.sendStatus(200);
 
     try {
@@ -852,17 +568,6 @@ app.post(
           message.text || ""
         ).trim();
 
-      /*
-        Always create/update user.
-      */
-
-      const user =
-        upsertUser(tgUser);
-
-      /*
-        Handle /start
-      */
-
       if (
         text === "/start" ||
         text.startsWith("/start ")
@@ -876,20 +581,12 @@ app.post(
             ? parts[1]
             : "";
 
-        /*
-          Referral is processed only
-          when a start parameter exists.
-        */
+        const user =
+          upsertUser(tgUser);
 
-        let referralResult =
-          null;
+        let referralResult = null;
 
-        if (
-          startParameter &&
-          /^ref_/i.test(
-            startParameter
-          )
-        ) {
+        if (startParameter) {
 
           referralResult =
             processReferral(
@@ -903,33 +600,21 @@ app.post(
             user.telegram_id
           );
 
-        const balance =
-          Number(
-            updatedUser?.balance || 0
-          ).toLocaleString();
-
-        const referrals =
-          Number(
-            updatedUser?.referral_count || 0
-          ).toLocaleString();
-
-        /*
-          Welcome message
-        */
-
         await telegram(
           "sendMessage",
           {
-            chat_id:
-              tgUser.id,
+            chat_id: tgUser.id,
 
             text:
               `👋 Welcome to MineRush2026, ${tgUser.first_name || "Miner"}!\n\n` +
               `⛏️ Start mining MRX and collect rewards.\n\n` +
-              `💰 Balance: ${balance} MRX\n` +
-              `👥 Referrals: ${referrals}\n` +
-              `🎁 Referral bonus: ${REFERRAL_BONUS} MRX\n` +
-              `💱 ${MRX_PER_USDT} MRX = 1 USDT`,
+              `💰 Balance: ${Number(
+                updatedUser.balance || 0
+              ).toLocaleString()} MRX\n` +
+              `👥 Referrals: ${Number(
+                updatedUser.referral_count || 0
+              )}\n\n` +
+              `💱 1000 MRX = 1 USDT`,
 
             reply_markup: {
               inline_keyboard: [
@@ -939,8 +624,7 @@ app.post(
                       "⛏️ Open MineRush2026",
 
                     web_app: {
-                      url:
-                        APP_URL
+                      url: APP_URL
                     }
                   }
                 ]
@@ -967,22 +651,6 @@ app.post(
 );
 
 /* =====================================================
-   HOME
-===================================================== */
-
-app.get(
-  "/",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "index.html"
-      )
-    );
-  }
-);
-
-/* =====================================================
    HEALTH
 ===================================================== */
 
@@ -993,8 +661,7 @@ app.get(
     res.json({
       ok: true,
       service: "MineRush2026",
-      status: "online",
-      time: now()
+      status: "online"
     });
   }
 );
@@ -1009,25 +676,54 @@ app.post(
 
     try {
 
-      const user =
-        upsertUser(
-          req.body?.user
-        );
-
       /*
-        Start mining if needed.
+         Normal Telegram Mini App:
+         body.user
+
+         Fallback:
+         body.telegram_id
       */
 
-      const updated =
+      let tgUser =
+        req.body?.user;
+
+      if (
+        (!tgUser || !tgUser.id) &&
+        req.body?.telegram_id
+      ) {
+
+        tgUser = {
+          id:
+            String(
+              req.body.telegram_id
+            ),
+
+          username:
+            req.body.username || "",
+
+          first_name:
+            req.body.first_name || "Miner"
+        };
+      }
+
+      if (!tgUser?.id) {
+        throw new Error(
+          "Telegram user is required"
+        );
+      }
+
+      const user =
+        upsertUser(tgUser);
+
+      const result =
         claimMining(
           user.telegram_id
         );
 
       res.json({
         ok: true,
-        user: updated,
-        miningRate:
-          MRX_PER_HOUR
+        user: result,
+        miningRate: MRX_PER_HOUR
       });
 
     } catch (error) {
@@ -1039,8 +735,7 @@ app.post(
 
       res.status(400).json({
         ok: false,
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -1079,8 +774,7 @@ app.post(
 
       res.status(400).json({
         ok: false,
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -1121,78 +815,66 @@ app.post(
           .toISOString()
           .slice(0, 10);
 
-      /*
-        Atomic protection.
-      */
+      if (
+        user.last_daily_bonus === day
+      ) {
 
-      const result =
+        return res.json({
+          ok: false,
+          error:
+            "Daily bonus already claimed"
+        });
+      }
+
+      const amount = 100;
+
+      const transaction =
         db.transaction(() => {
 
-          const latest =
-            getUser(id);
-
-          if (
-            latest.last_daily_bonus === day
-          ) {
-
-            return {
-              ok: false,
-              error:
-                "Daily bonus already claimed"
-            };
-          }
-
-          db.prepare(
-            `
+          db.prepare(`
             UPDATE users
             SET
-              balance =
-                balance + ?,
-
-              last_daily_bonus = ?,
-
-              updated_at = ?
-
-            WHERE
-              telegram_id = ?
-
-              AND (
-                last_daily_bonus IS NULL
-                OR last_daily_bonus != ?
-              )
-            `
-          ).run(
-            DAILY_BONUS,
+              balance=balance+?,
+              last_daily_bonus=?
+            WHERE telegram_id=?
+          `).run(
+            amount,
             day,
-            now(),
-            id,
-            day
+            id
           );
 
-          addTransaction(
+          db.prepare(`
+            INSERT INTO transactions
+            (
+              telegram_id,
+              type,
+              amount,
+              note,
+              created_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+          `).run(
             id,
             "daily",
-            DAILY_BONUS,
-            "Daily bonus"
+            amount,
+            "Daily bonus",
+            now()
           );
+        });
 
-          return {
-            ok: true,
-            amount:
-              DAILY_BONUS,
-            user:
-              getUser(id)
-          };
-        })();
+      transaction();
 
-      res.json(result);
+      res.json({
+        ok: true,
+        amount,
+        user: getUser(id)
+      });
 
     } catch (error) {
 
       res.status(400).json({
         ok: false,
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -1229,21 +911,18 @@ app.post(
       }
 
       /*
-        Check last successful ad reward.
+         Last successful ad
       */
 
       const recent =
-        db.prepare(
-          `
+        db.prepare(`
           SELECT created_at
           FROM transactions
-          WHERE
-            telegram_id = ?
-            AND type = 'ad_reward'
+          WHERE telegram_id=?
+          AND type='ad_reward'
           ORDER BY id DESC
           LIMIT 1
-          `
-        ).get(id);
+        `).get(id);
 
       if (recent) {
 
@@ -1254,8 +933,7 @@ app.post(
           );
 
         if (
-          elapsed <
-          AD_COOLDOWN_MS
+          elapsed < AD_COOLDOWN_MS
         ) {
 
           const remaining =
@@ -1268,9 +946,7 @@ app.post(
 
           return res.json({
             ok: false,
-
             cooldown: true,
-
             remainingSeconds:
               remaining,
 
@@ -1283,37 +959,28 @@ app.post(
       }
 
       /*
-        Expire old sessions.
+         Expire old sessions
       */
 
-      db.prepare(
-        `
+      db.prepare(`
         UPDATE ad_sessions
-        SET status = 'expired'
-        WHERE
-          telegram_id = ?
-          AND status = 'active'
-        `
-      ).run(id);
-
-      /*
-        Secure token.
-      */
+        SET status='expired'
+        WHERE telegram_id=?
+        AND status='active'
+      `).run(id);
 
       const token =
         crypto
           .randomBytes(32)
           .toString("hex");
 
-      const startedAt =
-        now();
+      const startedAt = now();
 
       const expiresAt =
         startedAt +
         AD_WATCH_SECONDS * 1000;
 
-      db.prepare(
-        `
+      db.prepare(`
         INSERT INTO ad_sessions
         (
           telegram_id,
@@ -1323,8 +990,7 @@ app.post(
           status
         )
         VALUES (?, ?, ?, ?, 'active')
-        `
-      ).run(
+      `).run(
         id,
         token,
         startedAt,
@@ -1333,29 +999,20 @@ app.post(
 
       res.json({
         ok: true,
-
         token,
-
         startedAt,
-
         expiresAt,
-
         watchSeconds:
           AD_WATCH_SECONDS,
-
-        reward:
-          AD_REWARD,
-
-        adUrl:
-          AD_URL
+        reward: AD_REWARD,
+        adUrl: AD_URL
       });
 
     } catch (error) {
 
       res.status(400).json({
         ok: false,
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -1397,16 +1054,13 @@ app.post(
       }
 
       const session =
-        db.prepare(
-          `
+        db.prepare(`
           SELECT *
           FROM ad_sessions
-          WHERE
-            token = ?
-            AND telegram_id = ?
+          WHERE token=?
+          AND telegram_id=?
           LIMIT 1
-          `
-        ).get(
+        `).get(
           token,
           id
         );
@@ -1425,14 +1079,11 @@ app.post(
         );
       }
 
-      const current =
-        now();
+      const current = now();
 
       if (
         current <
-        Number(
-          session.expires_at
-        )
+        Number(session.expires_at)
       ) {
 
         const remaining =
@@ -1446,84 +1097,75 @@ app.post(
           );
 
         throw new Error(
-          `Please wait ${remaining} more second(s)`
+          `Please watch the ad for ${remaining} more second(s)`
         );
       }
 
-      const result =
+      const transaction =
         db.transaction(() => {
 
-          /*
-            Atomic claim.
-          */
-
-          const update =
-            db.prepare(
-              `
+          const updated =
+            db.prepare(`
               UPDATE ad_sessions
               SET
-                status = 'claimed',
-                claimed_at = ?
-              WHERE
-                id = ?
-                AND status = 'active'
-              `
-            ).run(
+                status='claimed',
+                claimed_at=?
+              WHERE id=?
+              AND status='active'
+            `).run(
               current,
               session.id
             );
 
           if (
-            update.changes !== 1
+            updated.changes !== 1
           ) {
             throw new Error(
               "Ad session already claimed"
             );
           }
 
-          db.prepare(
-            `
+          db.prepare(`
             UPDATE users
-            SET
-              balance =
-                balance + ?,
-
-              updated_at = ?
-
-            WHERE telegram_id = ?
-            `
-          ).run(
+            SET balance=balance+?
+            WHERE telegram_id=?
+          `).run(
             AD_REWARD,
-            current,
             id
           );
 
-          addTransaction(
+          db.prepare(`
+            INSERT INTO transactions
+            (
+              telegram_id,
+              type,
+              amount,
+              note,
+              created_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+          `).run(
             id,
             "ad_reward",
             AD_REWARD,
-            "30-second ad session"
+            "Verified ad session",
+            current
           );
+        });
 
-          return getUser(id);
-        })();
+      transaction();
 
       res.json({
         ok: true,
-
-        amount:
-          AD_REWARD,
-
-        user:
-          result
+        amount: AD_REWARD,
+        user: getUser(id)
       });
 
     } catch (error) {
 
       res.status(400).json({
         ok: false,
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -1539,7 +1181,6 @@ app.post(
 
     res.status(403).json({
       ok: false,
-
       error:
         "Direct ad reward is disabled."
     });
@@ -1599,8 +1240,7 @@ app.get(
 
       res.status(400).json({
         ok: false,
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -1609,19 +1249,6 @@ app.get(
 /* =====================================================
    WITHDRAW
 ===================================================== */
-
-function isValidTRC20(
-  wallet
-) {
-  /*
-    Basic TRON address validation.
-    TRC20 addresses normally begin
-    with T and contain 34 characters.
-  */
-
-  return /^T[1-9A-HJ-NP-Za-km-z]{33}$/
-    .test(wallet);
-}
 
 app.post(
   "/api/withdraw",
@@ -1652,27 +1279,12 @@ app.post(
 
       if (!wallet) {
         throw new Error(
-          "Wallet address is required"
+          "Wallet is required"
         );
       }
 
       if (
-        !isValidTRC20(wallet)
-      ) {
-        throw new Error(
-          "Invalid USDT TRC20 wallet address"
-        );
-      }
-
-      if (
-        !Number.isFinite(amount)
-      ) {
-        throw new Error(
-          "Invalid withdrawal amount"
-        );
-      }
-
-      if (
+        !Number.isFinite(amount) ||
         amount < MIN_WITHDRAW_USDT
       ) {
         throw new Error(
@@ -1680,71 +1292,40 @@ app.post(
         );
       }
 
+      const user =
+        getUser(id);
+
+      if (!user) {
+        throw new Error(
+          "User not found"
+        );
+      }
+
       const required =
         amount * MRX_PER_USDT;
 
-      const withdrawalId =
+      if (
+        Number(user.balance) < required
+      ) {
+        throw new Error(
+          "Insufficient MRX balance"
+        );
+      }
+
+      const transaction =
         db.transaction(() => {
 
-          const user =
-            getUser(id);
-
-          if (!user) {
-            throw new Error(
-              "User not found"
-            );
-          }
-
-          if (
-            Number(user.balance) <
-            required
-          ) {
-            throw new Error(
-              "Insufficient MRX balance"
-            );
-          }
-
-          /*
-            Deduct balance.
-          */
-
-          const update =
-            db.prepare(
-              `
-              UPDATE users
-              SET
-                balance =
-                  balance - ?,
-
-                updated_at = ?
-
-              WHERE
-                telegram_id = ?
-
-                AND balance >= ?
-              `
-            ).run(
-              required,
-              now(),
-              id,
-              required
-            );
-
-          if (
-            update.changes !== 1
-          ) {
-            throw new Error(
-              "Insufficient MRX balance"
-            );
-          }
-
-          /*
-            Create withdrawal.
-          */
+          db.prepare(`
+            UPDATE users
+            SET balance=balance-?
+            WHERE telegram_id=?
+          `).run(
+            required,
+            id
+          );
 
           const result =
-            db.prepare(
-              `
+            db.prepare(`
               INSERT INTO withdrawals
               (
                 telegram_id,
@@ -1754,34 +1335,41 @@ app.post(
                 created_at
               )
               VALUES (?, ?, ?, 'pending', ?)
-              `
-            ).run(
+            `).run(
               id,
               amount,
               wallet,
               now()
             );
 
-          /*
-            History
-          */
-
-          addTransaction(
+          db.prepare(`
+            INSERT INTO transactions
+            (
+              telegram_id,
+              type,
+              amount,
+              note,
+              created_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+          `).run(
             id,
             "withdrawal",
             -required,
-            `Withdrawal request #${result.lastInsertRowid}`
+            `Withdrawal #${result.lastInsertRowid}`,
+            now()
           );
 
           return result.lastInsertRowid;
-        })();
+        });
+
+      const withdrawalId =
+        transaction();
 
       res.json({
         ok: true,
-
         withdrawal_id:
           withdrawalId,
-
         user:
           getUser(id)
       });
@@ -1790,8 +1378,7 @@ app.post(
 
       res.status(400).json({
         ok: false,
-        error:
-          error.message
+        error: error.message
       });
     }
   }
@@ -1801,25 +1388,19 @@ app.post(
    ADMIN AUTH
 ===================================================== */
 
-function admin(
-  req,
-  res,
-  next
-) {
+function admin(req, res, next) {
 
-  const adminKey =
+  const key =
     process.env.ADMIN_KEY || "";
 
   if (
-    !adminKey ||
-    req.headers["x-admin-key"] !==
-      adminKey
+    !key ||
+    req.headers["x-admin-key"] !== key
   ) {
 
     return res.status(401).json({
       ok: false,
-      error:
-        "Unauthorized"
+      error: "Unauthorized"
     });
   }
 
@@ -1835,88 +1416,37 @@ app.get(
   admin,
   (req, res) => {
 
-    try {
+    const users =
+      db.prepare(`
+        SELECT COUNT(*) AS c
+        FROM users
+      `).get().c;
 
-      const users =
-        db.prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM users
-          `
-        ).get().count;
+    const pending =
+      db.prepare(`
+        SELECT COUNT(*) AS c
+        FROM withdrawals
+        WHERE status='pending'
+      `).get().c;
 
-      const pending =
-        db.prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM withdrawals
-          WHERE status = 'pending'
-          `
-        ).get().count;
+    const balance =
+      db.prepare(`
+        SELECT
+          COALESCE(
+            SUM(balance),
+            0
+          ) AS s
+        FROM users
+      `).get().s;
 
-      const totalMRX =
-        db.prepare(
-          `
-          SELECT
-            COALESCE(
-              SUM(balance),
-              0
-            ) AS total
-          FROM users
-          `
-        ).get().total;
-
-      const adRewards =
-        db.prepare(
-          `
-          SELECT
-            COALESCE(
-              SUM(amount),
-              0
-            ) AS total
-          FROM transactions
-          WHERE type = 'ad_reward'
-          `
-        ).get().total;
-
-      const referralRewards =
-        db.prepare(
-          `
-          SELECT
-            COALESCE(
-              SUM(amount),
-              0
-            ) AS total
-          FROM transactions
-          WHERE type = 'referral'
-          `
-        ).get().total;
-
-      res.json({
-        ok: true,
-
-        users,
-
-        pendingWithdrawals:
-          pending,
-
-        totalMRX,
-
-        totalAdRewards:
-          adRewards,
-
-        totalReferralRewards:
-          referralRewards
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-        ok: false,
-        error:
-          error.message
-      });
-    }
+    res.json({
+      ok: true,
+      users,
+      pendingWithdrawals:
+        pending,
+      totalMRX:
+        balance
+    });
   }
 );
 
@@ -1929,31 +1459,18 @@ app.get(
   admin,
   (req, res) => {
 
-    try {
+    const items =
+      db.prepare(`
+        SELECT *
+        FROM withdrawals
+        ORDER BY id DESC
+        LIMIT 200
+      `).all();
 
-      const items =
-        db.prepare(
-          `
-          SELECT *
-          FROM withdrawals
-          ORDER BY id DESC
-          LIMIT 200
-          `
-        ).all();
-
-      res.json({
-        ok: true,
-        items
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-        ok: false,
-        error:
-          error.message
-      });
-    }
+    res.json({
+      ok: true,
+      items
+    });
   }
 );
 
@@ -1966,279 +1483,132 @@ app.post(
   admin,
   (req, res) => {
 
-    try {
+    const id =
+      Number(
+        req.params.id
+      );
 
-      const id =
-        Number(
-          req.params.id
-        );
+    const status =
+      String(
+        req.body?.status || ""
+      );
 
-      const status =
-        String(
-          req.body?.status || ""
-        );
+    if (
+      ![
+        "pending",
+        "paid",
+        "rejected"
+      ].includes(status)
+    ) {
 
-      if (
-        !Number.isInteger(id) ||
-        id <= 0
-      ) {
-        throw new Error(
-          "Invalid withdrawal ID"
-        );
-      }
-
-      if (
-        ![
-          "pending",
-          "paid",
-          "rejected"
-        ].includes(status)
-      ) {
-        throw new Error(
+      return res.status(400).json({
+        ok: false,
+        error:
           "Invalid status"
-        );
-      }
+      });
+    }
 
-      const result =
-        db.transaction(() => {
+    const withdrawal =
+      db.prepare(`
+        SELECT *
+        FROM withdrawals
+        WHERE id=?
+      `).get(id);
 
-          const withdrawal =
-            db.prepare(
-              `
-              SELECT *
-              FROM withdrawals
-              WHERE id = ?
-              LIMIT 1
-              `
-            ).get(id);
+    if (!withdrawal) {
 
-          if (!withdrawal) {
-            throw new Error(
-              "Withdrawal not found"
-            );
-          }
+      return res.status(404).json({
+        ok: false,
+        error:
+          "Withdrawal not found"
+      });
+    }
 
-          /*
-            Already paid/rejected:
-            do not process twice.
-          */
+    /*
+       যদি rejected করা হয়,
+       pending withdrawal-এর MRX ফেরত দেওয়া হবে।
+    */
 
-          if (
-            withdrawal.status !==
-            "pending"
-          ) {
+    const transaction =
+      db.transaction(() => {
 
-            if (
-              withdrawal.status ===
-                status
-            ) {
-              return;
-            }
+        if (
+          status === "rejected" &&
+          withdrawal.status === "pending"
+        ) {
 
-            throw new Error(
-              "Withdrawal has already been processed"
-            );
-          }
+          const refund =
+            Number(
+              withdrawal.amount_usdt
+            ) * MRX_PER_USDT;
 
-          /*
-            REJECT:
-            return MRX to user.
-          */
-
-          if (
-            status === "rejected"
-          ) {
-
-            const refund =
-              Number(
-                withdrawal.amount_usdt
-              ) * MRX_PER_USDT;
-
-            db.prepare(
-              `
-              UPDATE users
-              SET
-                balance =
-                  balance + ?,
-
-                updated_at = ?
-
-              WHERE telegram_id = ?
-              `
-            ).run(
-              refund,
-              now(),
-              withdrawal.telegram_id
-            );
-
-            addTransaction(
-              withdrawal.telegram_id,
-              "withdrawal_refund",
-              refund,
-              `Refund for rejected withdrawal #${id}`
-            );
-          }
-
-          db.prepare(
-            `
-            UPDATE withdrawals
-            SET
-              status = ?,
-              processed_at = ?
-            WHERE
-              id = ?
-              AND status = 'pending'
-            `
-          ).run(
-            status,
-            status === "pending"
-              ? null
-              : now(),
-            id
+          db.prepare(`
+            UPDATE users
+            SET balance=balance+?
+            WHERE telegram_id=?
+          `).run(
+            refund,
+            withdrawal.telegram_id
           );
-        })();
 
-      res.json({
-        ok: true
+          db.prepare(`
+            INSERT INTO transactions
+            (
+              telegram_id,
+              type,
+              amount,
+              note,
+              created_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+          `).run(
+            withdrawal.telegram_id,
+            "withdrawal_refund",
+            refund,
+            `Refund for withdrawal #${id}`,
+            now()
+          );
+        }
+
+        db.prepare(`
+          UPDATE withdrawals
+          SET
+            status=?,
+            processed_at=?
+          WHERE id=?
+        `).run(
+          status,
+          status === "pending"
+            ? null
+            : now(),
+          id
+        );
       });
 
-    } catch (error) {
+    transaction();
 
-      res.status(400).json({
-        ok: false,
-        error:
-          error.message
-      });
-    }
+    res.json({
+      ok: true
+    });
   }
 );
 
 /* =====================================================
-   ADMIN USERS
+   404
 ===================================================== */
 
-app.get(
-  "/api/admin/users",
-  admin,
+app.use(
   (req, res) => {
 
-    try {
-
-      const users =
-        db.prepare(
-          `
-          SELECT
-            telegram_id,
-            username,
-            first_name,
-            balance,
-            mining_started_at,
-            referral_count,
-            referral_earnings,
-            created_at
-          FROM users
-          ORDER BY id DESC
-          LIMIT 500
-          `
-        ).all();
-
-      res.json({
-        ok: true,
-        users
-      });
-
-    } catch (error) {
-
-      res.status(500).json({
-        ok: false,
-        error:
-          error.message
-      });
-    }
+    res.status(404).json({
+      ok: false,
+      error: "Not Found"
+    });
   }
 );
 
 /* =====================================================
-   ADMIN USER BALANCE
-===================================================== */
-
-app.post(
-  "/api/admin/users/:telegram_id/balance",
-  admin,
-  (req, res) => {
-
-    try {
-
-      const id =
-        String(
-          req.params.telegram_id
-        );
-
-      const amount =
-        Number(
-          req.body?.amount
-        );
-
-      if (
-        !Number.isFinite(amount)
-      ) {
-        throw new Error(
-          "Invalid amount"
-        );
-      }
-
-      const user =
-        getUser(id);
-
-      if (!user) {
-        throw new Error(
-          "User not found"
-        );
-      }
-
-      db.prepare(
-        `
-        UPDATE users
-        SET
-          balance =
-            balance + ?,
-
-          updated_at = ?
-
-        WHERE telegram_id = ?
-        `
-      ).run(
-        amount,
-        now(),
-        id
-      );
-
-      addTransaction(
-        id,
-        "admin_adjustment",
-        amount,
-        "Admin balance adjustment"
-      );
-
-      res.json({
-        ok: true,
-        user:
-          getUser(id)
-      });
-
-    } catch (error) {
-
-      res.status(400).json({
-        ok: false,
-        error:
-          error.message
-      });
-    }
-  }
-);
-
-/* =====================================================
-   TELEGRAM WEBHOOK SETUP
+   TELEGRAM WEBHOOK
 ===================================================== */
 
 async function setupTelegram() {
@@ -2261,19 +1631,7 @@ async function setupTelegram() {
       await telegram(
         "setWebhook",
         {
-          url:
-            webhookUrl,
-
-          /*
-            Drop pending old updates
-            when server is redeployed.
-          */
-
-          drop_pending_updates:
-            false,
-
-          allowed_updates:
-            ["message"]
+          url: webhookUrl
         }
       );
 
@@ -2299,86 +1657,7 @@ async function setupTelegram() {
 }
 
 /* =====================================================
-   GRACEFUL SHUTDOWN
-===================================================== */
-
-function shutdown(
-  signal
-) {
-
-  console.log(
-    `${signal} received. Closing database...`
-  );
-
-  try {
-    db.close();
-  } catch {}
-
-  process.exit(0);
-}
-
-process.on(
-  "SIGTERM",
-  () => shutdown("SIGTERM")
-);
-
-process.on(
-  "SIGINT",
-  () => shutdown("SIGINT")
-);
-
-/* =====================================================
-   404
-===================================================== */
-
-app.use(
-  (req, res) => {
-
-    if (
-      req.path.startsWith("/api/")
-    ) {
-
-      return res.status(404).json({
-        ok: false,
-        error:
-          "API endpoint not found"
-      });
-    }
-
-    res.status(404).send(
-      "MineRush2026 - Page not found"
-    );
-  }
-);
-
-/* =====================================================
-   GLOBAL ERROR
-===================================================== */
-
-app.use(
-  (error, req, res, next) => {
-
-    console.error(
-      "Server error:",
-      error
-    );
-
-    if (
-      res.headersSent
-    ) {
-      return next(error);
-    }
-
-    res.status(500).json({
-      ok: false,
-      error:
-        "Internal server error"
-    });
-  }
-);
-
-/* =====================================================
-   START SERVER
+   START
 ===================================================== */
 
 app.listen(
@@ -2411,7 +1690,7 @@ app.listen(
     );
 
     console.log(
-      `Exchange rate: ${MRX_PER_USDT} MRX = 1 USDT`
+      "Exchange rate: 1000 MRX = 1 USDT"
     );
 
     console.log(
@@ -2419,8 +1698,7 @@ app.listen(
     );
 
     console.log(
-      "Database:",
-      DB_FILE
+      `Database: ${process.env.DB_FILE || "./minerush.sqlite"}`
     );
 
     await setupTelegram();

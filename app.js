@@ -1,66 +1,72 @@
 "use strict";
 
-/* =====================================================
-   MineRush2026 - FINAL APP.JS
-   Server-side balance + Telegram UID
-===================================================== */
-
-/* =====================================================
+/* =========================================================
    TELEGRAM
-===================================================== */
+========================================================= */
 
-const tg = window.Telegram?.WebApp || null;
+const tg =
+  window.Telegram?.WebApp || null;
 
 if (tg) {
   try {
     tg.ready();
     tg.expand();
   } catch (error) {
-    console.error("Telegram WebApp error:", error);
+    console.error(
+      "Telegram WebApp error:",
+      error
+    );
   }
 }
 
-/* =====================================================
+/* =========================================================
    CONFIG
-===================================================== */
+========================================================= */
 
 const API = "";
 
 const DEFAULT_MINING_RATE = 10;
-const DEFAULT_MINING_CYCLE = 12 * 60 * 60;
+const DEFAULT_MINING_CYCLE =
+  12 * 60 * 60;
+
 const DEFAULT_DAILY_BONUS = 100;
 const DEFAULT_AD_REWARD = 25;
 const DEFAULT_REFERRAL_BONUS = 500;
 const DEFAULT_MIN_WITHDRAW = 10;
 const DEFAULT_MRX_PER_USDT = 1000;
 
-/* =====================================================
+/* =========================================================
    STATE
-===================================================== */
+========================================================= */
 
 let state = null;
+
 let telegramUser = null;
 
 let miningStart = null;
-let miningCycleSeconds = DEFAULT_MINING_CYCLE;
+
+let miningCycleSeconds =
+  DEFAULT_MINING_CYCLE;
 
 let adToken = null;
 let adExpiresAt = null;
 let adRunning = false;
 let adTimer = null;
 
-/* =====================================================
+/* =========================================================
    DOM
-===================================================== */
+========================================================= */
 
-const $ = (id) => document.getElementById(id);
+const $ = (id) =>
+  document.getElementById(id);
 
-/* =====================================================
+/* =========================================================
    TELEGRAM USER
-===================================================== */
+========================================================= */
 
 function refreshTelegramUser() {
-  const user = tg?.initDataUnsafe?.user;
+  const user =
+    tg?.initDataUnsafe?.user;
 
   if (user?.id) {
     telegramUser = user;
@@ -87,49 +93,75 @@ function getTelegramId() {
     : "";
 }
 
-/* =====================================================
+/* =========================================================
    PROFILE
-===================================================== */
+========================================================= */
 
 function getFirstName() {
-  return telegramUser?.first_name || "Miner";
+  return (
+    telegramUser?.first_name ||
+    "Miner"
+  );
 }
 
 function getUsername() {
   return telegramUser?.username
-    ? String(telegramUser.username)
+    ? String(
+        telegramUser.username
+      )
     : "";
 }
 
 function getPhoto() {
-  return telegramUser?.photo_url || "";
+  return (
+    telegramUser?.photo_url ||
+    ""
+  );
 }
 
 function renderProfile() {
-  const welcome = $("welcome");
-  const avatar = $("avatar");
+  const welcome =
+    $("welcome");
 
-  const firstName = getFirstName();
-  const username = getUsername();
-  const photo = getPhoto();
+  const avatar =
+    $("avatar");
+
+  const firstName =
+    getFirstName();
+
+  const username =
+    getUsername();
+
+  const photo =
+    getPhoto();
 
   if (welcome) {
-    welcome.textContent = username
-      ? `Welcome, ${firstName} • @${username}`
-      : `Welcome, ${firstName}`;
+    welcome.textContent =
+      username
+        ? `Welcome, ${firstName} • @${username}`
+        : `Welcome, ${firstName}`;
   }
 
-  if (!avatar) return;
+  if (!avatar) {
+    return;
+  }
 
   avatar.innerHTML = "";
 
   if (photo) {
-    const img = document.createElement("img");
+    const img =
+      document.createElement(
+        "img"
+      );
 
     img.src = photo;
+
     img.alt = firstName;
+
     img.loading = "eager";
-    img.referrerPolicy = "no-referrer";
+
+    img.referrerPolicy =
+      "no-referrer";
 
     img.onerror = () => {
       avatar.innerHTML = "👤";
@@ -137,75 +169,63 @@ function renderProfile() {
 
     avatar.appendChild(img);
   } else {
-    avatar.textContent = "👤";
+    avatar.textContent =
+      "👤";
   }
 }
 
-/* =====================================================
+/* =========================================================
    NUMBER
-===================================================== */
+========================================================= */
 
-function formatNumber(value, decimals = 4) {
-  const number = Number(value ?? 0);
+function formatNumber(
+  value,
+  decimals = 4
+) {
+  const number =
+    Number(value ?? 0);
 
   if (!Number.isFinite(number)) {
     return "0";
   }
 
-  return number.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals
-  });
-}
-
-/* =====================================================
-   TIME
-===================================================== */
-
-function formatTime(totalSeconds) {
-  const seconds = Math.max(
-    0,
-    Math.floor(Number(totalSeconds) || 0)
-  );
-
-  const hours = Math.floor(
-    seconds / 3600
-  );
-
-  const minutes = Math.floor(
-    (seconds % 3600) / 60
-  );
-
-  const secs = seconds % 60;
-
-  return (
-    `${String(hours).padStart(2, "0")}:` +
-    `${String(minutes).padStart(2, "0")}:` +
-    `${String(secs).padStart(2, "0")}`
+  return number.toLocaleString(
+    undefined,
+    {
+      minimumFractionDigits: 0,
+      maximumFractionDigits:
+        decimals
+    }
   );
 }
 
-/* =====================================================
+/* =========================================================
    STATUS
-===================================================== */
+========================================================= */
 
 function setStatus(text) {
-  const element = $("status");
+  const element =
+    $("status");
 
   if (element) {
-    element.textContent = text || "";
+    element.textContent =
+      text || "";
   }
 }
 
-/* =====================================================
-   API CALL
-===================================================== */
+/* =========================================================
+   API
+========================================================= */
 
-async function call(endpoint, body = {}) {
+async function call(
+  endpoint,
+  body = {}
+) {
   try {
     refreshTelegramUser();
 
-    const initData = tg?.initData || "";
+    const initData =
+      tg?.initData || "";
 
     if (!initData) {
       return {
@@ -215,31 +235,35 @@ async function call(endpoint, body = {}) {
       };
     }
 
-    const response = await fetch(
-      API + endpoint,
-      {
-        method: "POST",
+    const response =
+      await fetch(
+        API + endpoint,
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json"
-        },
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-        body: JSON.stringify({
-          ...body,
-          initData
-        })
-      }
-    );
+          body: JSON.stringify({
+            ...body,
+            initData
+          })
+        }
+      );
 
-    const text = await response.text();
+    const text =
+      await response.text();
 
     let result = {};
 
     try {
-      result = text
-        ? JSON.parse(text)
-        : {};
-    } catch (error) {
+      result =
+        text
+          ? JSON.parse(text)
+          : {};
+    } catch {
       console.error(
         "Invalid server response:",
         text
@@ -248,7 +272,7 @@ async function call(endpoint, body = {}) {
       return {
         ok: false,
         error:
-          "Server returned invalid JSON."
+          "Invalid server response."
       };
     }
 
@@ -257,15 +281,14 @@ async function call(endpoint, body = {}) {
         ok: false,
         error:
           result.error ||
-          `Server error (${response.status})`
+          `Server error ${response.status}`
       };
     }
 
     return result;
-
   } catch (error) {
     console.error(
-      "API connection error:",
+      "API error:",
       error
     );
 
@@ -277,106 +300,115 @@ async function call(endpoint, body = {}) {
   }
 }
 
-/* =====================================================
+/* =========================================================
    RENDER USER
-===================================================== */
+========================================================= */
 
 function render(user) {
-  if (!user) return;
+  if (!user) {
+    return;
+  }
 
   state = user;
 
-  /* -----------------------------
-     BALANCE
-  ----------------------------- */
+  /* BALANCE */
 
-  const balance = $("balance");
+  const balance =
+    $("balance");
 
   if (balance) {
     balance.textContent =
-      `${formatNumber(user.balance, 4)} MRX`;
+      `${formatNumber(
+        user.balance,
+        4
+      )} MRX`;
   }
 
-  /* -----------------------------
-     UID
-  ----------------------------- */
+  /* RATE */
 
-  const uidElements = [
-    $("uid"),
-    $("userId"),
-    $("telegramId"),
-    $("telegramUID")
-  ];
-
-  uidElements.forEach((element) => {
-    if (element) {
-      element.textContent =
-        String(user.telegram_id || getTelegramId());
-    }
-  });
-
-  /* -----------------------------
-     MINING RATE
-  ----------------------------- */
-
-  const rateElement = $("rate");
+  const rateElement =
+    $("rate");
 
   if (rateElement) {
-    const rate = Number(
-      user.mining_rate ??
-      user.miningRate ??
-      DEFAULT_MINING_RATE
-    );
+    const rate =
+      Number(
+        state.mining_rate ??
+        state.miningRate ??
+        DEFAULT_MINING_RATE
+      );
 
     rateElement.textContent =
-      `${formatNumber(rate, 2)} MRX/hour`;
+      `${formatNumber(
+        rate,
+        2
+      )} MRX/hour`;
   }
 
-  /* -----------------------------
-     MINING START
-  ----------------------------- */
+  /* MINING START */
 
   if (
-    user.mining_started_at !== null &&
-    user.mining_started_at !== undefined
+    user.mining_started_at !==
+      null &&
+    user.mining_started_at !==
+      undefined
   ) {
     const start =
-      Number(user.mining_started_at);
+      Number(
+        user.mining_started_at
+      );
 
     if (
       Number.isFinite(start) &&
       start > 0
     ) {
-      miningStart = start;
+      miningStart =
+        start;
     }
+  } else {
+    miningStart = null;
   }
 
   updateMiningTimer();
 }
 
-/* =====================================================
+/* =========================================================
    MINING TIMER
-===================================================== */
+========================================================= */
 
 function updateMiningTimer() {
-  const timer = $("timer");
-  const progressBar = $("progressBar");
-  const progressText = $("progressText");
-  const miningStatus = $("miningStatus");
-  const claim = $("claim");
+  const timer =
+    $("timer");
 
-  if (!timer) return;
+  const progressBar =
+    $("progressBar");
+
+  const progressText =
+    $("progressText");
+
+  const miningStatus =
+    $("miningStatus");
+
+  const claim =
+    $("claim");
+
+  if (!timer) {
+    return;
+  }
 
   if (!miningStart) {
     timer.textContent =
-      formatTime(miningCycleSeconds);
+      formatTime(
+        miningCycleSeconds
+      );
 
     if (progressBar) {
-      progressBar.style.width = "0%";
+      progressBar.style.width =
+        "0%";
     }
 
     if (progressText) {
-      progressText.textContent = "0%";
+      progressText.textContent =
+        "0%";
     }
 
     if (miningStatus) {
@@ -391,25 +423,37 @@ function updateMiningTimer() {
     return;
   }
 
-  const elapsed = Math.max(
-    0,
-    Math.floor(
-      (Date.now() - miningStart) / 1000
-    )
-  );
+  const elapsed =
+    Math.max(
+      0,
+      Math.floor(
+        (
+          Date.now() -
+          miningStart
+        ) / 1000
+      )
+    );
 
-  const remaining = Math.max(
-    0,
-    miningCycleSeconds - elapsed
-  );
+  const remaining =
+    Math.max(
+      0,
+      miningCycleSeconds -
+        elapsed
+    );
 
   timer.textContent =
-    formatTime(remaining);
+    formatTime(
+      remaining
+    );
 
-  const percent = Math.min(
-    100,
-    (elapsed / miningCycleSeconds) * 100
-  );
+  const percent =
+    Math.min(
+      100,
+      (
+        elapsed /
+        miningCycleSeconds
+      ) * 100
+    );
 
   if (progressBar) {
     progressBar.style.width =
@@ -418,7 +462,9 @@ function updateMiningTimer() {
 
   if (progressText) {
     progressText.textContent =
-      `${Math.floor(percent)}%`;
+      `${Math.floor(
+        percent
+      )}%`;
   }
 
   if (miningStatus) {
@@ -433,12 +479,59 @@ function updateMiningTimer() {
   }
 }
 
-/* =====================================================
-   BOOTSTRAP
-===================================================== */
+/* =========================================================
+   TIME FORMAT
+========================================================= */
+
+function formatTime(
+  totalSeconds
+) {
+  const seconds =
+    Math.max(
+      0,
+      Math.floor(
+        Number(
+          totalSeconds
+        ) || 0
+      )
+    );
+
+  const hours =
+    Math.floor(
+      seconds / 3600
+    );
+
+  const minutes =
+    Math.floor(
+      (seconds % 3600) / 60
+    );
+
+  const secs =
+    seconds % 60;
+
+  return (
+    `${String(hours).padStart(
+      2,
+      "0"
+    )}:` +
+    `${String(minutes).padStart(
+      2,
+      "0"
+    )}:` +
+    `${String(secs).padStart(
+      2,
+      "0"
+    )}`
+  );
+}
+
+/* =========================================================
+   BOOT
+========================================================= */
 
 async function boot() {
   refreshTelegramUser();
+
   renderProfile();
 
   if (!telegramAvailable()) {
@@ -454,7 +547,9 @@ async function boot() {
   );
 
   const result =
-    await call("/api/bootstrap");
+    await call(
+      "/api/bootstrap"
+    );
 
   if (!result.ok) {
     setStatus(
@@ -470,44 +565,35 @@ async function boot() {
     return;
   }
 
-  /* -----------------------------
-     SERVER SETTINGS
-  ----------------------------- */
-
   if (result.settings) {
-    const settings =
-      result.settings;
-
-    if (
-      settings.miningCycleHours
-    ) {
-      miningCycleSeconds =
-        Number(
-          settings.miningCycleHours
-        ) * 60 * 60;
-    }
-
-    if (
-      settings.adWatchSeconds
-    ) {
-      // Server controls ad duration.
-    }
+    miningCycleSeconds =
+      Number(
+        result.settings
+          .miningCycleSeconds ||
+        (
+          Number(
+            result.settings
+              .miningCycleHours ||
+            12
+          ) * 3600
+        )
+      );
   }
 
-  /* -----------------------------
-     SERVER USER
-  ----------------------------- */
+  render(
+    result.user
+  );
 
-  render(result.user);
-
-  setStatus("Ready to mine");
+  setStatus(
+    "Ready to mine"
+  );
 
   await loadReferral();
 }
 
-/* =====================================================
-   REFRESH SERVER BALANCE
-===================================================== */
+/* =========================================================
+   REFRESH BALANCE
+========================================================= */
 
 async function refreshBalance() {
   if (!telegramAvailable()) {
@@ -515,11 +601,13 @@ async function refreshBalance() {
   }
 
   const result =
-    await call("/api/bootstrap");
+    await call(
+      "/api/bootstrap"
+    );
 
   if (!result.ok) {
     console.error(
-      "Balance refresh error:",
+      "Balance refresh:",
       result.error
     );
 
@@ -527,37 +615,41 @@ async function refreshBalance() {
   }
 
   if (result.settings) {
-    const settings =
-      result.settings;
-
-    if (
-      settings.miningCycleHours
-    ) {
-      miningCycleSeconds =
-        Number(
-          settings.miningCycleHours
-        ) * 60 * 60;
-    }
+    miningCycleSeconds =
+      Number(
+        result.settings
+          .miningCycleSeconds ||
+        (
+          Number(
+            result.settings
+              .miningCycleHours ||
+            12
+          ) * 3600
+        )
+      );
   }
 
-  render(result.user);
+  render(
+    result.user
+  );
 }
 
-/* =====================================================
+/* =========================================================
    MINING CLAIM
-===================================================== */
+========================================================= */
 
-const claim = $("claim");
+const claim =
+  $("claim");
 
 if (claim) {
   claim.addEventListener(
     "click",
     async () => {
-
       if (!telegramAvailable()) {
         alert(
           "Please open MineRush2026 from Telegram."
         );
+
         return;
       }
 
@@ -573,7 +665,9 @@ if (claim) {
         );
 
       if (result.ok) {
-        render(result.user);
+        render(
+          result.user
+        );
 
         setStatus(
           "Mining reward saved on server!"
@@ -592,42 +686,52 @@ if (claim) {
         await refreshBalance();
       }
 
-      setTimeout(() => {
-        claim.disabled = false;
-      }, 1000);
+      setTimeout(
+        () => {
+          claim.disabled =
+            false;
+        },
+        1000
+      );
     }
   );
 }
 
-/* =====================================================
+/* =========================================================
    DAILY BONUS
-===================================================== */
+========================================================= */
 
-const daily = $("daily");
+const daily =
+  $("daily");
 
 if (daily) {
   daily.addEventListener(
     "click",
     async () => {
-
       if (!telegramAvailable()) {
         alert(
           "Please open MineRush2026 from Telegram."
         );
+
         return;
       }
 
-      daily.disabled = true;
+      daily.disabled =
+        true;
 
       setStatus(
         "Checking daily bonus..."
       );
 
       const result =
-        await call("/api/daily");
+        await call(
+          "/api/daily"
+        );
 
       if (result.ok) {
-        render(result.user);
+        render(
+          result.user
+        );
 
         alert(
           `🎁 +${formatNumber(
@@ -645,28 +749,35 @@ if (daily) {
         );
 
         if (result.user) {
-          render(result.user);
+          render(
+            result.user
+          );
         }
       }
 
-      daily.disabled = false;
+      daily.disabled =
+        false;
     }
   );
 }
 
-/* =====================================================
+/* =========================================================
    AD
-===================================================== */
+========================================================= */
 
-const ad = $("ad");
+const ad =
+  $("ad");
 
 async function startAd() {
-  if (adRunning) return;
+  if (adRunning) {
+    return;
+  }
 
   if (!telegramAvailable()) {
     alert(
       "Please open MineRush2026 from Telegram."
     );
+
     return;
   }
 
@@ -674,6 +785,7 @@ async function startAd() {
 
   if (ad) {
     ad.disabled = true;
+
     ad.textContent =
       "📺 Opening Ad...";
   }
@@ -683,7 +795,9 @@ async function startAd() {
   );
 
   const result =
-    await call("/api/ad/start");
+    await call(
+      "/api/ad/start"
+    );
 
   if (!result.ok) {
     resetAdButton();
@@ -702,14 +816,20 @@ async function startAd() {
   }
 
   adToken =
-    String(result.token || "");
+    String(
+      result.token || ""
+    );
 
   adExpiresAt =
-    Number(result.expiresAt);
+    Number(
+      result.expiresAt
+    );
 
   if (
     !adToken ||
-    !Number.isFinite(adExpiresAt)
+    !Number.isFinite(
+      adExpiresAt
+    )
   ) {
     resetAdButton();
 
@@ -727,9 +847,12 @@ async function startAd() {
   try {
     if (
       tg &&
-      typeof tg.openLink === "function"
+      typeof tg.openLink ===
+        "function"
     ) {
-      tg.openLink(result.adUrl);
+      tg.openLink(
+        result.adUrl
+      );
     } else {
       window.open(
         result.adUrl,
@@ -746,9 +869,9 @@ async function startAd() {
   startAdTimer();
 }
 
-/* =====================================================
+/* =========================================================
    AD TIMER
-===================================================== */
+========================================================= */
 
 function startAdTimer() {
   stopAdTimer();
@@ -765,6 +888,7 @@ function startAdTimer() {
 function updateAdCountdown() {
   if (!adExpiresAt) {
     stopAdTimer();
+
     return;
   }
 
@@ -772,8 +896,10 @@ function updateAdCountdown() {
     Math.max(
       0,
       Math.ceil(
-        (adExpiresAt - Date.now()) /
-        1000
+        (
+          adExpiresAt -
+          Date.now()
+        ) / 1000
       )
     );
 
@@ -786,28 +912,33 @@ function updateAdCountdown() {
 
   if (left <= 0) {
     stopAdTimer();
+
     claimAdReward();
   }
 }
 
-/* =====================================================
-   STOP AD TIMER
-===================================================== */
+/* =========================================================
+   STOP AD
+========================================================= */
 
 function stopAdTimer() {
   if (adTimer) {
-    clearInterval(adTimer);
+    clearInterval(
+      adTimer
+    );
+
     adTimer = null;
   }
 }
 
-/* =====================================================
-   AD CLAIM
-===================================================== */
+/* =========================================================
+   CLAIM AD
+========================================================= */
 
 async function claimAdReward() {
   if (!adToken) {
     resetAdButton();
+
     return;
   }
 
@@ -829,7 +960,9 @@ async function claimAdReward() {
     );
 
   if (result.ok) {
-    render(result.user);
+    render(
+      result.user
+    );
 
     alert(
       `🎉 +${formatNumber(
@@ -857,19 +990,22 @@ async function claimAdReward() {
   resetAdButton();
 }
 
-/* =====================================================
+/* =========================================================
    RESET AD
-===================================================== */
+========================================================= */
 
 function resetAdButton() {
   stopAdTimer();
 
   adRunning = false;
+
   adToken = null;
+
   adExpiresAt = null;
 
   if (ad) {
     ad.disabled = false;
+
     ad.textContent =
       "📺 Watch Ad";
   }
@@ -882,9 +1018,9 @@ if (ad) {
   );
 }
 
-/* =====================================================
-   REFERRAL INFO
-===================================================== */
+/* =========================================================
+   REFERRAL
+========================================================= */
 
 async function loadReferral() {
   if (!telegramAvailable()) {
@@ -892,11 +1028,13 @@ async function loadReferral() {
   }
 
   const result =
-    await call("/api/referral");
+    await call(
+      "/api/referral"
+    );
 
   if (!result.ok) {
     console.error(
-      "Referral error:",
+      "Referral:",
       result.error
     );
 
@@ -925,21 +1063,22 @@ async function loadReferral() {
   }
 }
 
-/* =====================================================
+/* =========================================================
    REFERRAL BUTTON
-===================================================== */
+========================================================= */
 
-const ref = $("ref");
+const ref =
+  $("ref");
 
 if (ref) {
   ref.addEventListener(
     "click",
     async () => {
-
       if (!telegramAvailable()) {
         alert(
           "Please open MineRush2026 from Telegram."
         );
+
         return;
       }
 
@@ -972,13 +1111,11 @@ if (ref) {
         }
 
         const shareUrl =
-          `https://t.me/share/url?url=${
-            encodeURIComponent(link)
-          }&text=${
-            encodeURIComponent(
-              "⛏️ Join MineRush2026 and start mining MRX!"
-            )
-          }`;
+          `https://t.me/share/url?url=${encodeURIComponent(
+            link
+          )}&text=${encodeURIComponent(
+            "⛏️ Join MineRush2026 and start mining MRX!"
+          )}`;
 
         if (
           tg &&
@@ -993,7 +1130,6 @@ if (ref) {
             `Your referral link:\n\n${link}`
           );
         }
-
       } catch (error) {
         console.error(
           "Referral error:",
@@ -1004,27 +1140,29 @@ if (ref) {
           "Referral system unavailable."
         );
       } finally {
-        ref.disabled = false;
+        ref.disabled =
+          false;
       }
     }
   );
 }
 
-/* =====================================================
+/* =========================================================
    WITHDRAW
-===================================================== */
+========================================================= */
 
-const withdraw = $("withdraw");
+const withdraw =
+  $("withdraw");
 
 if (withdraw) {
   withdraw.addEventListener(
     "click",
     async () => {
-
       if (!telegramAvailable()) {
         alert(
           "Please open MineRush2026 from Telegram."
         );
+
         return;
       }
 
@@ -1064,16 +1202,15 @@ if (withdraw) {
       }
 
       const requiredMRX =
-        amount * mrxPerUsdt;
-
-      /*
-         Get latest server balance.
-      */
+        amount *
+        mrxPerUsdt;
 
       await refreshBalance();
 
       if (
-        Number(state?.balance || 0) <
+        Number(
+          state?.balance || 0
+        ) <
         requiredMRX
       ) {
         alert(
@@ -1116,7 +1253,8 @@ if (withdraw) {
         return;
       }
 
-      withdraw.disabled = true;
+      withdraw.disabled =
+        true;
 
       setStatus(
         "Submitting withdrawal..."
@@ -1135,7 +1273,9 @@ if (withdraw) {
         );
 
       if (result.ok) {
-        render(result.user);
+        render(
+          result.user
+        );
 
         alert(
           `💸 Withdrawal #${
@@ -1158,24 +1298,26 @@ if (withdraw) {
         await refreshBalance();
       }
 
-      withdraw.disabled = false;
+      withdraw.disabled =
+        false;
     }
   );
 }
 
-/* =====================================================
+/* =========================================================
    PAGE VISIBILITY
-===================================================== */
+========================================================= */
 
 document.addEventListener(
   "visibilitychange",
   async () => {
-
     if (!document.hidden) {
       refreshTelegramUser();
+
       renderProfile();
 
       await refreshBalance();
+
       await loadReferral();
 
       updateMiningTimer();
@@ -1183,7 +1325,8 @@ document.addEventListener(
       if (
         adToken &&
         adExpiresAt &&
-        Date.now() >= adExpiresAt &&
+        Date.now() >=
+          adExpiresAt &&
         adRunning
       ) {
         updateAdCountdown();
@@ -1192,35 +1335,33 @@ document.addEventListener(
   }
 );
 
-/* =====================================================
-   PERIODIC SERVER SYNC
-===================================================== */
+/* =========================================================
+   SERVER SYNC
+========================================================= */
 
 setInterval(
   async () => {
-
     if (
       !document.hidden &&
       telegramAvailable()
     ) {
       await refreshBalance();
     }
-
   },
   30000
 );
 
-/* =====================================================
-   MINING TIMER
-===================================================== */
+/* =========================================================
+   TIMER LOOP
+========================================================= */
 
 setInterval(
   updateMiningTimer,
   1000
 );
 
-/* =====================================================
+/* =========================================================
    START
-===================================================== */
+========================================================= */
 
 boot();

@@ -1,34 +1,33 @@
 "use strict";
 
 /* =====================================================
-   MineRush2026 - FIXED APP.JS
-   Compatible with current server.js
+MineRush2026 - APP.JS
+Server-side balance + persistent Telegram UID
 ===================================================== */
 
 /* =====================================================
-   TELEGRAM
+TELEGRAM
 ===================================================== */
 
 const tg = window.Telegram?.WebApp || null;
 
 if (tg) {
-  try {
-    tg.ready();
-    tg.expand();
-  } catch (error) {
-    console.error("Telegram WebApp error:", error);
-  }
+try {
+tg.ready();
+tg.expand();
+} catch (e) {
+console.error("Telegram WebApp error:", e);
+}
 }
 
 /* =====================================================
-   CONFIG
+CONFIG
 ===================================================== */
 
 const API = "";
 
-const MAX_MINING_SECONDS = 12 * 60 * 60;
-
 const DEFAULT_MINING_RATE = 10;
+const DEFAULT_MINING_CYCLE = 12 * 60 * 60;
 const DEFAULT_DAILY_BONUS = 100;
 const DEFAULT_AD_REWARD = 25;
 const DEFAULT_REFERRAL_BONUS = 500;
@@ -36,30 +35,14 @@ const DEFAULT_MIN_WITHDRAW = 10;
 const DEFAULT_MRX_PER_USDT = 1000;
 
 /* =====================================================
-   TELEGRAM USER
-===================================================== */
-
-let telegramUser = null;
-
-function refreshTelegramUser() {
-  if (
-    tg?.initDataUnsafe?.user &&
-    tg.initDataUnsafe.user.id
-  ) {
-    telegramUser = tg.initDataUnsafe.user;
-  }
-}
-
-refreshTelegramUser();
-
-const initData = tg?.initData || "";
-
-/* =====================================================
-   STATE
+STATE
 ===================================================== */
 
 let state = null;
+let telegramUser = null;
+
 let miningStart = null;
+let miningCycleSeconds = DEFAULT_MINING_CYCLE;
 
 let adToken = null;
 let adExpiresAt = null;
@@ -67,583 +50,479 @@ let adRunning = false;
 let adTimer = null;
 
 /* =====================================================
-   DOM
+DOM HELPER
 ===================================================== */
 
 const $ = (id) => document.getElementById(id);
 
 /* =====================================================
-   TELEGRAM CHECK
+TELEGRAM USER
 ===================================================== */
 
-function telegramAvailable() {
-  refreshTelegramUser();
+function refreshTelegramUser() {
+const user = tg?.initDataUnsafe?.user;
 
-  return Boolean(
-    tg &&
-    telegramUser &&
-    telegramUser.id &&
-    tg.initData
-  );
+if (user?.id) {
+telegramUser = user;
+}
+
+return telegramUser;
+}
+
+function telegramAvailable() {
+refreshTelegramUser();
+
+return Boolean(
+tg &&
+tg.initData &&
+telegramUser?.id
+);
 }
 
 function getTelegramId() {
-  refreshTelegramUser();
+refreshTelegramUser();
 
-  return telegramUser?.id
-    ? String(telegramUser.id)
-    : "";
+return telegramUser?.id
+? String(telegramUser.id)
+: "";
 }
 
 /* =====================================================
-   PROFILE
+PROFILE
 ===================================================== */
 
 function getFirstName() {
-  return telegramUser?.first_name || "Miner";
+return telegramUser?.first_name || "Miner";
 }
 
 function getUsername() {
-  return telegramUser?.username
-    ? String(telegramUser.username)
-    : "";
+return telegramUser?.username
+? String(telegramUser.username)
+: "";
 }
 
-function getProfilePhoto() {
-  return telegramUser?.photo_url || "";
+function getPhoto() {
+return telegramUser?.photo_url || "";
 }
 
 function renderProfile() {
-  const welcome = $("welcome");
-  const avatar = $("avatar");
+const welcome = $("welcome");
+const avatar = $("avatar");
 
-  const firstName = getFirstName();
-  const username = getUsername();
-  const photo = getProfilePhoto();
+const firstName = getFirstName();
+const username = getUsername();
+const photo = getPhoto();
 
-  if (welcome) {
-    welcome.textContent = username
-      ? `Welcome, ${firstName} • @${username}`
-      : `Welcome, ${firstName}`;
-  }
+if (welcome) {
+welcome.textContent = username
+? "Welcome, ${firstName} • @${username}"
+: "Welcome, ${firstName}";
+}
 
-  if (!avatar) return;
+if (!avatar) return;
 
-  avatar.innerHTML = "";
+avatar.innerHTML = "";
 
-  if (photo) {
-    const image = document.createElement("img");
+if (photo) {
+const img = document.createElement("img");
 
-    image.src = photo;
-    image.alt = firstName;
-    image.loading = "eager";
-    image.referrerPolicy = "no-referrer";
+img.src = photo;
+img.alt = firstName;
+img.loading = "eager";
+img.referrerPolicy = "no-referrer";
 
-    image.onerror = () => {
-      avatar.textContent = "👤";
-    };
+img.onerror = () => {
+  avatar.innerHTML = "👤";
+};
 
-    avatar.appendChild(image);
-  } else {
-    avatar.textContent = "👤";
-  }
+avatar.appendChild(img);
+
+} else {
+avatar.textContent = "👤";
+}
 }
 
 /* =====================================================
-   NUMBER
+NUMBER
 ===================================================== */
 
-function formatNumber(value, decimals = 2) {
-  const number = Number(value ?? 0);
+function formatNumber(value, decimals = 4) {
+const number = Number(value ?? 0);
 
-  if (!Number.isFinite(number)) {
-    return "0";
-  }
+if (!Number.isFinite(number)) {
+return "0";
+}
 
-  return number.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals
-  });
+return number.toLocaleString(undefined, {
+minimumFractionDigits: 0,
+maximumFractionDigits: decimals
+});
 }
 
 /* =====================================================
-   API
+STATUS
 ===================================================== */
 
-async function call(path, body = {}) {
-  try {
-    refreshTelegramUser();
+function setStatus(text) {
+const element = $("status");
 
-    const payload = {
+if (element) {
+element.textContent = text || "";
+}
+}
+
+/* =====================================================
+API CALL
+===================================================== */
+
+async function call(endpoint, body = {}) {
+try {
+refreshTelegramUser();
+
+const initData = tg?.initData || "";
+
+if (!initData) {
+  return {
+    ok: false,
+    error: "Telegram authentication data not found."
+  };
+}
+
+const response = await fetch(
+  API + endpoint,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
       ...body,
-
-      /*
-         Server verifies Telegram identity
-         from initData only.
-      */
-      initData: tg?.initData || ""
-    };
-
-    const response = await fetch(
-      API + path,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify(payload)
-      }
-    );
-
-    const text = await response.text();
-
-    let result = {};
-
-    try {
-      result = text
-        ? JSON.parse(text)
-        : {};
-    } catch (error) {
-      console.error("Invalid JSON:", text);
-
-      return {
-        ok: false,
-        error: "Server returned an invalid response."
-      };
-    }
-
-    if (!response.ok && result.ok !== false) {
-      return {
-        ok: false,
-        error:
-          result.error ||
-          `Server error (${response.status})`
-      };
-    }
-
-    return result;
-
-  } catch (error) {
-    console.error("API error:", error);
-
-    return {
-      ok: false,
-      error: "Connection error. Please try again."
-    };
+      initData
+    })
   }
+);
+
+const text = await response.text();
+
+let result;
+
+try {
+  result = text
+    ? JSON.parse(text)
+    : {};
+} catch {
+  console.error("Invalid server response:", text);
+
+  return {
+    ok: false,
+    error: "Invalid server response."
+  };
+}
+
+if (!response.ok) {
+  return {
+    ok: false,
+    error:
+      result.error ||
+      `Server error ${response.status}`
+  };
+}
+
+return result;
+
+} catch (error) {
+console.error("API error:", error);
+
+return {
+  ok: false,
+  error:
+    "Connection failed. Please try again."
+};
+
+}
 }
 
 /* =====================================================
-   STATUS
-===================================================== */
-
-function setStatus(message) {
-  const status = $("status");
-
-  if (status) {
-    status.textContent = message || "";
-  }
-}
-
-/* =====================================================
-   RENDER USER
+RENDER USER
 ===================================================== */
 
 function render(user) {
-  if (!user) return;
+if (!user) return;
 
-  state = user;
+state = user;
 
-  const balance = $("balance");
+/* -----------------------------
+BALANCE
+----------------------------- */
 
-  if (balance) {
-    balance.textContent =
-      `${formatNumber(user.balance, 4)} MRX`;
-  }
+const balance = $("balance");
 
-  const rate = $("rate");
+if (balance) {
+balance.textContent =
+"${formatNumber(user.balance, 4)} MRX";
+}
 
-  if (rate) {
-    const miningRate = Number(
-      user.mining_rate ??
-      user.miningRate ??
-      DEFAULT_MINING_RATE
-    );
+/* -----------------------------
+MINING RATE
+----------------------------- */
 
-    rate.textContent =
-      `${miningRate} MRX/hour`;
-  }
+const rateElement = $("rate");
 
-  if (user.mining_started_at) {
-    const timestamp =
-      Number(user.mining_started_at);
+if (rateElement) {
+const rate =
+Number(
+state.mining_rate ??
+state.miningRate ??
+DEFAULT_MINING_RATE
+);
 
-    if (
-      Number.isFinite(timestamp) &&
-      timestamp > 0
-    ) {
-      miningStart = timestamp;
-    }
-  }
+rateElement.textContent =
+  `${formatNumber(rate, 2)} MRX/hour`;
 
-  updateMiningTimer();
+}
+
+/* -----------------------------
+SERVER MINING START
+----------------------------- */
+
+if (
+user.mining_started_at !== null &&
+user.mining_started_at !== undefined
+) {
+const start =
+Number(user.mining_started_at);
+
+if (
+  Number.isFinite(start) &&
+  start > 0
+) {
+  miningStart = start;
+}
+
+}
+
+updateMiningTimer();
 }
 
 /* =====================================================
-   MINING TIMER
+MINING TIMER
 ===================================================== */
 
 function updateMiningTimer() {
-  const timer = $("timer");
-  const progressBar = $("progressBar");
-  const progressText = $("progressText");
-  const miningStatus = $("miningStatus");
-  const claim = $("claim");
+const timer = $("timer");
+const progressBar = $("progressBar");
+const progressText = $("progressText");
+const miningStatus = $("miningStatus");
+const claim = $("claim");
 
-  if (!timer) return;
+if (!timer) return;
 
-  if (!miningStart) {
-    timer.textContent = "12:00:00";
+if (!miningStart) {
+timer.textContent =
+formatTime(miningCycleSeconds);
 
-    if (progressBar) {
-      progressBar.style.width = "0%";
-    }
+if (progressBar) {
+  progressBar.style.width = "0%";
+}
 
-    if (progressText) {
-      progressText.textContent = "0%";
-    }
+if (progressText) {
+  progressText.textContent = "0%";
+}
 
-    if (miningStatus) {
-      miningStatus.textContent = "READY TO MINE";
-    }
+if (miningStatus) {
+  miningStatus.textContent =
+    "READY TO MINE";
+}
 
-    if (claim) {
-      claim.disabled = false;
-    }
+if (claim) {
+  claim.disabled = false;
+}
 
-    return;
-  }
+return;
 
-  const elapsed = Math.max(
-    0,
-    Math.floor(
-      (Date.now() - miningStart) / 1000
-    )
-  );
+}
 
-  const remaining = Math.max(
-    0,
-    MAX_MINING_SECONDS - elapsed
-  );
+const elapsed = Math.max(
+0,
+Math.floor(
+(Date.now() - miningStart) / 1000
+)
+);
 
-  const hours = Math.floor(
-    remaining / 3600
-  );
+const remaining = Math.max(
+0,
+miningCycleSeconds - elapsed
+);
 
-  const minutes = Math.floor(
-    (remaining % 3600) / 60
-  );
+timer.textContent =
+formatTime(remaining);
 
-  const seconds = remaining % 60;
+const percent =
+Math.min(
+100,
+(elapsed / miningCycleSeconds) * 100
+);
 
-  timer.textContent =
-    `${String(hours).padStart(2, "0")}:` +
-    `${String(minutes).padStart(2, "0")}:` +
-    `${String(seconds).padStart(2, "0")}`;
+if (progressBar) {
+progressBar.style.width =
+"${percent}%";
+}
 
-  const percentage = Math.min(
-    100,
-    (elapsed / MAX_MINING_SECONDS) * 100
-  );
+if (progressText) {
+progressText.textContent =
+"${Math.floor(percent)}%";
+}
 
-  if (progressBar) {
-    progressBar.style.width =
-      `${percentage}%`;
-  }
+if (miningStatus) {
+miningStatus.textContent =
+remaining > 0
+? "MINING ACTIVE"
+: "MINING COMPLETE";
+}
 
-  if (progressText) {
-    progressText.textContent =
-      `${Math.floor(percentage)}%`;
-  }
-
-  if (miningStatus) {
-    miningStatus.textContent =
-      remaining > 0
-        ? "MINING ACTIVE"
-        : "MINING COMPLETE";
-  }
-
-  if (claim) {
-    claim.disabled = false;
-  }
+if (claim) {
+claim.disabled = false;
+}
 }
 
 /* =====================================================
-   REFERRAL
+TIME FORMAT
 ===================================================== */
 
-async function loadReferral() {
-  if (!telegramAvailable()) return;
+function formatTime(totalSeconds) {
+const seconds =
+Math.max(
+0,
+Math.floor(Number(totalSeconds) || 0)
+);
 
-  try {
-    const result =
-      await call("/api/referral");
+const hours =
+Math.floor(seconds / 3600);
 
-    if (!result.ok) {
-      console.error(
-        "Referral:",
-        result.error
-      );
-      return;
-    }
+const minutes =
+Math.floor(
+(seconds % 3600) / 60
+);
 
-    const count = $("refCount");
-    const earned = $("refEarned");
+const secs =
+seconds % 60;
 
-    if (count) {
-      count.textContent =
-        formatNumber(
-          result.referralCount || 0,
-          0
-        );
-    }
-
-    if (earned) {
-      earned.textContent =
-        `${formatNumber(
-          result.referralEarnings || 0,
-          4
-        )} MRX`;
-    }
-
-  } catch (error) {
-    console.error(
-      "Referral error:",
-      error
-    );
-  }
+return (
+"${String(hours).padStart(2, "0")}:" +
+"${String(minutes).padStart(2, "0")}:" +
+"${String(secs).padStart(2, "0")}"
+);
 }
 
 /* =====================================================
-   BOOTSTRAP
+BOOTSTRAP
 ===================================================== */
 
 async function boot() {
-  refreshTelegramUser();
-  renderProfile();
+refreshTelegramUser();
+renderProfile();
 
-  if (!telegramAvailable()) {
-    setStatus(
-      "Please open MineRush2026 from Telegram."
-    );
+if (!telegramAvailable()) {
+setStatus(
+"Please open MineRush2026 from Telegram."
+);
+return;
+}
 
-    return;
-  }
+setStatus(
+"Connecting to MineRush2026..."
+);
 
-  setStatus(
-    "Connecting to MineRush2026..."
-  );
+const result =
+await call("/api/bootstrap");
 
-  const result = await call(
-    "/api/bootstrap",
-    {
-      user: {
-        id: telegramUser.id,
-        username:
-          telegramUser.username || "",
-        first_name:
-          telegramUser.first_name || "",
-        photo_url:
-          telegramUser.photo_url || ""
-      },
+if (!result.ok) {
+setStatus(
+result.error ||
+"Unable to connect."
+);
 
-      telegram_id:
-        getTelegramId(),
+console.error(
+  "Bootstrap error:",
+  result.error
+);
 
-      username:
-        telegramUser.username || "",
+return;
 
-      first_name:
-        telegramUser.first_name || ""
-    }
-  );
+}
 
-  if (!result.ok) {
-    setStatus(
-      result.error ||
-      "Unable to connect."
-    );
+/* -----------------------------
+SERVER SETTINGS
+----------------------------- */
 
-    console.error(
-      "Bootstrap error:",
-      result.error
-    );
+if (result.settings) {
+const settings =
+result.settings;
 
-    return;
-  }
+miningCycleSeconds =
+  Number(
+    settings.miningCycleHours ||
+    12
+  ) * 60 * 60;
 
-  render(result.user);
+}
 
-  if (
-    result.user?.mining_started_at
-  ) {
-    miningStart =
-      Number(
-        result.user.mining_started_at
-      );
-  }
+/* -----------------------------
+SERVER USER
+----------------------------- */
 
-  updateMiningTimer();
+render(result.user);
 
-  await loadReferral();
+/*
+IMPORTANT:
+Balance comes from server.
+UID also comes from Telegram/server.
+*/
 
-  setStatus("Ready to mine");
+setStatus("Ready to mine");
+
+await loadReferral();
 }
 
 /* =====================================================
-   MINING CLAIM
+REFRESH SERVER BALANCE
+===================================================== */
+
+async function refreshBalance() {
+if (!telegramAvailable()) return;
+
+const result =
+await call("/api/bootstrap");
+
+if (!result.ok) {
+console.error(
+"Balance refresh:",
+result.error
+);
+return;
+}
+
+if (result.settings) {
+miningCycleSeconds =
+Number(
+result.settings.miningCycleHours ||
+12
+) * 60 * 60;
+}
+
+render(result.user);
+}
+
+/* =====================================================
+MINING CLAIM
 ===================================================== */
 
 const claim = $("claim");
 
 if (claim) {
-  claim.addEventListener(
-    "click",
-    async () => {
-
-      if (!telegramAvailable()) {
-        alert(
-          "Please open MineRush2026 from Telegram."
-        );
-        return;
-      }
-
-      claim.disabled = true;
-
-      setStatus(
-        "Processing mining..."
-      );
-
-      const result =
-        await call(
-          "/api/mining/claim",
-          {
-            telegram_id:
-              getTelegramId()
-          }
-        );
-
-      if (result.ok) {
-
-        render(result.user);
-
-        if (
-          result.user?.mining_started_at
-        ) {
-          miningStart =
-            Number(
-              result.user.mining_started_at
-            );
-        }
-
-        updateMiningTimer();
-
-        setStatus(
-          "Mining reward claimed successfully!"
-        );
-
-      } else {
-
-        setStatus(
-          result.error ||
-          "Mining failed."
-        );
-      }
-
-      setTimeout(() => {
-        claim.disabled = false;
-      }, 800);
-    }
-  );
-}
-
-/* =====================================================
-   DAILY BONUS
-===================================================== */
-
-const daily = $("daily");
-
-if (daily) {
-  daily.addEventListener(
-    "click",
-    async () => {
-
-      if (!telegramAvailable()) {
-        alert(
-          "Please open MineRush2026 from Telegram."
-        );
-        return;
-      }
-
-      daily.disabled = true;
-
-      setStatus(
-        "Checking daily bonus..."
-      );
-
-      const result =
-        await call(
-          "/api/daily",
-          {
-            telegram_id:
-              getTelegramId()
-          }
-        );
-
-      if (result.ok) {
-
-        render(result.user);
-
-        alert(
-          `🎁 +${formatNumber(
-            result.amount,
-            4
-          )} MRX Daily Bonus!`
-        );
-
-        setStatus(
-          "Daily bonus claimed successfully!"
-        );
-
-      } else {
-
-        alert(
-          result.error ||
-          "Daily bonus unavailable."
-        );
-
-        setStatus(
-          result.error ||
-          "Daily bonus unavailable."
-        );
-      }
-
-      daily.disabled = false;
-    }
-  );
-}
-
-/* =====================================================
-   AD
-===================================================== */
-
-const ad = $("ad");
-
-async function startAd() {
-
-  if (adRunning) return;
+claim.addEventListener(
+"click",
+async () => {
 
   if (!telegramAvailable()) {
     alert(
@@ -652,197 +531,598 @@ async function startAd() {
     return;
   }
 
-  adRunning = true;
-
-  if (ad) {
-    ad.disabled = true;
-    ad.textContent =
-      "📺 Opening Ad...";
-  }
+  claim.disabled = true;
 
   setStatus(
-    "Preparing advertisement..."
+    "Processing mining..."
   );
 
   const result =
     await call(
-      "/api/ad/start",
-      {
-        telegram_id:
-          getTelegramId()
-      }
+      "/api/mining/claim"
     );
 
-  if (!result.ok) {
+  if (result.ok) {
 
-    resetAdButton();
+    render(result.user);
 
-    if (result.cooldown) {
+    setStatus(
+      "Mining reward saved on server!"
+    );
 
-      const seconds =
-        Number(
-          result.remainingSeconds || 0
-        );
-
-      const minutes =
-        Math.max(
-          1,
-          Math.ceil(seconds / 60)
-        );
-
-      alert(
-        `⏳ Please wait ${minutes} minute(s) before watching another ad.`
-      );
-
-    } else {
-
-      alert(
-        result.error ||
-        "Unable to start advertisement."
-      );
-    }
+  } else {
 
     setStatus(
       result.error ||
-      "Advertisement unavailable."
+      "Mining failed."
     );
-
-    return;
-  }
-
-  adToken = result.token;
-
-  adExpiresAt =
-    Number(result.expiresAt);
-
-  if (
-    !adToken ||
-    !Number.isFinite(adExpiresAt)
-  ) {
-
-    resetAdButton();
 
     alert(
-      "Invalid advertisement session."
+      result.error ||
+      "Mining failed."
     );
 
+    await refreshBalance();
+  }
+
+  setTimeout(() => {
+    claim.disabled = false;
+  }, 1000);
+}
+
+);
+}
+
+/* =====================================================
+DAILY BONUS
+===================================================== */
+
+const daily = $("daily");
+
+if (daily) {
+daily.addEventListener(
+"click",
+async () => {
+
+  if (!telegramAvailable()) {
+    alert(
+      "Please open MineRush2026 from Telegram."
+    );
     return;
   }
 
+  daily.disabled = true;
+
   setStatus(
-    "Advertisement opened. Wait 30 seconds to claim."
+    "Checking daily bonus..."
   );
+
+  const result =
+    await call("/api/daily");
+
+  if (result.ok) {
+
+    render(result.user);
+
+    alert(
+      `🎁 +${formatNumber(
+        result.amount
+      )} MRX Daily Bonus!`
+    );
+
+    setStatus(
+      "Daily bonus added!"
+    );
+
+  } else {
+
+    alert(
+      result.error ||
+      "Daily bonus unavailable."
+    );
+
+    if (result.user) {
+      render(result.user);
+    }
+  }
+
+  daily.disabled = false;
+}
+
+);
+}
+
+/* =====================================================
+AD
+===================================================== */
+
+const ad = $("ad");
+
+async function startAd() {
+if (adRunning) return;
+
+if (!telegramAvailable()) {
+alert(
+"Please open MineRush2026 from Telegram."
+);
+return;
+}
+
+adRunning = true;
+
+if (ad) {
+ad.disabled = true;
+ad.textContent =
+"📺 Opening Ad...";
+}
+
+setStatus(
+"Preparing advertisement..."
+);
+
+const result =
+await call("/api/ad/start");
+
+if (!result.ok) {
+
+resetAdButton();
+
+alert(
+  result.error ||
+  "Unable to start advertisement."
+);
+
+setStatus(
+  result.error ||
+  "Advertisement unavailable."
+);
+
+return;
+
+}
+
+adToken =
+String(result.token || "");
+
+adExpiresAt =
+Number(result.expiresAt);
+
+if (
+!adToken ||
+!Number.isFinite(adExpiresAt)
+) {
+
+resetAdButton();
+
+alert(
+  "Invalid advertisement session."
+);
+
+return;
+
+}
+
+setStatus(
+"Ad opened. Please wait 30 seconds."
+);
+
+try {
+
+if (
+  tg &&
+  typeof tg.openLink === "function"
+) {
+  tg.openLink(result.adUrl);
+} else {
+  window.open(
+    result.adUrl,
+    "_blank"
+  );
+}
+
+} catch (error) {
+console.error(
+"Ad open error:",
+error
+);
+}
+
+startAdTimer();
+}
+
+/* =====================================================
+AD TIMER
+===================================================== */
+
+function startAdTimer() {
+stopAdTimer();
+
+updateAdCountdown();
+
+adTimer =
+setInterval(
+updateAdCountdown,
+500
+);
+}
+
+function updateAdCountdown() {
+if (!adExpiresAt) {
+stopAdTimer();
+return;
+}
+
+const left =
+Math.max(
+0,
+Math.ceil(
+(adExpiresAt - Date.now()) /
+1000
+)
+);
+
+if (ad) {
+ad.textContent =
+left > 0
+? "⏳ Ad ${left}s"
+: "🎁 Claiming...";
+}
+
+if (left <= 0) {
+stopAdTimer();
+claimAdReward();
+}
+}
+
+/* =====================================================
+STOP AD TIMER
+===================================================== */
+
+function stopAdTimer() {
+if (adTimer) {
+clearInterval(adTimer);
+adTimer = null;
+}
+}
+
+/* =====================================================
+AD CLAIM
+===================================================== */
+
+async function claimAdReward() {
+if (!adToken) {
+resetAdButton();
+return;
+}
+
+const token =
+adToken;
+
+adToken = null;
+
+setStatus(
+"Verifying advertisement..."
+);
+
+const result =
+await call(
+"/api/ad/claim",
+{
+token
+}
+);
+
+if (result.ok) {
+
+render(result.user);
+
+alert(
+  `🎉 +${formatNumber(
+    result.amount
+  )} MRX Ad Reward!`
+);
+
+setStatus(
+  "Ad reward added!"
+);
+
+} else {
+
+alert(
+  result.error ||
+  "Ad reward could not be claimed."
+);
+
+setStatus(
+  result.error ||
+  "Ad reward failed."
+);
+
+await refreshBalance();
+
+}
+
+resetAdButton();
+}
+
+/* =====================================================
+RESET AD
+===================================================== */
+
+function resetAdButton() {
+stopAdTimer();
+
+adRunning = false;
+adToken = null;
+adExpiresAt = null;
+
+if (ad) {
+ad.disabled = false;
+ad.textContent =
+"📺 Watch Ad";
+}
+}
+
+if (ad) {
+ad.addEventListener(
+"click",
+startAd
+);
+}
+
+/* =====================================================
+REFERRAL
+===================================================== */
+
+async function loadReferral() {
+if (!telegramAvailable()) return;
+
+const result =
+await call("/api/referral");
+
+if (!result.ok) {
+console.error(
+"Referral:",
+result.error
+);
+return;
+}
+
+const count =
+$("refCount");
+
+const earned =
+$("refEarned");
+
+if (count) {
+count.textContent =
+formatNumber(
+result.referralCount || 0,
+0
+);
+}
+
+if (earned) {
+earned.textContent =
+"${formatNumber( result.referralEarnings || 0 )} MRX";
+}
+}
+
+/* =====================================================
+REFERRAL BUTTON
+===================================================== */
+
+const ref = $("ref");
+
+if (ref) {
+ref.addEventListener(
+"click",
+async () => {
+
+  if (!telegramAvailable()) {
+    alert(
+      "Please open MineRush2026 from Telegram."
+    );
+    return;
+  }
+
+  ref.disabled = true;
 
   try {
 
+    const result =
+      await call(
+        "/api/referral"
+      );
+
+    if (!result.ok) {
+      alert(
+        result.error ||
+        "Referral unavailable."
+      );
+      return;
+    }
+
+    const link =
+      result.referralLink;
+
+    if (!link) {
+      alert(
+        "Referral link unavailable."
+      );
+      return;
+    }
+
+    const shareUrl =
+      `https://t.me/share/url?url=${
+        encodeURIComponent(link)
+      }&text=${
+        encodeURIComponent(
+          "⛏️ Join MineRush2026 and start mining MRX!"
+        )
+      }`;
+
     if (
       tg &&
-      typeof tg.openLink === "function"
+      typeof tg.openTelegramLink ===
+        "function"
     ) {
 
-      tg.openLink(result.adUrl);
+      tg.openTelegramLink(
+        shareUrl
+      );
 
     } else {
 
-      window.open(
-        result.adUrl,
-        "_blank"
+      alert(
+        `Your referral link:\n\n${link}`
       );
     }
 
   } catch (error) {
 
     console.error(
-      "Ad open error:",
+      "Referral error:",
       error
     );
-  }
 
-  startAdTimer();
-}
-
-/* =====================================================
-   AD TIMER
-===================================================== */
-
-function startAdTimer() {
-  stopAdTimer();
-
-  updateAdCountdown();
-
-  adTimer = setInterval(
-    updateAdCountdown,
-    500
-  );
-}
-
-function updateAdCountdown() {
-
-  if (!adExpiresAt) {
-    stopAdTimer();
-    return;
-  }
-
-  const secondsLeft =
-    Math.max(
-      0,
-      Math.ceil(
-        (adExpiresAt - Date.now()) /
-        1000
-      )
+    alert(
+      "Referral system unavailable."
     );
 
-  if (ad) {
-    ad.textContent =
-      secondsLeft > 0
-        ? `⏳ Ad ${secondsLeft}s`
-        : "🎁 Claiming...";
-  }
+  } finally {
 
-  if (secondsLeft <= 0) {
-    stopAdTimer();
-    claimAdReward();
+    ref.disabled = false;
   }
 }
 
-/* =====================================================
-   STOP AD TIMER
-===================================================== */
-
-function stopAdTimer() {
-  if (adTimer) {
-    clearInterval(adTimer);
-    adTimer = null;
-  }
+);
 }
 
 /* =====================================================
-   AD CLAIM
+WITHDRAW
 ===================================================== */
 
-async function claimAdReward() {
+const withdraw = $("withdraw");
 
-  if (!adToken) {
-    resetAdButton();
+if (withdraw) {
+withdraw.addEventListener(
+"click",
+async () => {
+
+  if (!telegramAvailable()) {
+    alert(
+      "Please open MineRush2026 from Telegram."
+    );
     return;
   }
 
-  const token = adToken;
+  const minimum =
+    Number(
+      DEFAULT_MIN_WITHDRAW
+    );
 
-  adToken = null;
+  const mrxPerUsdt =
+    Number(
+      DEFAULT_MRX_PER_USDT
+    );
+
+  const amountInput =
+    prompt(
+      `USDT amount (minimum ${minimum}):`,
+      String(minimum)
+    );
+
+  if (
+    amountInput === null ||
+    !amountInput.trim()
+  ) {
+    return;
+  }
+
+  const amount =
+    Number(
+      amountInput.trim()
+    );
+
+  if (
+    !Number.isFinite(amount) ||
+    amount < minimum
+  ) {
+    alert(
+      `Minimum withdrawal is ${minimum} USDT.`
+    );
+    return;
+  }
+
+  const requiredMRX =
+    amount *
+    mrxPerUsdt;
+
+  /*
+     Always use current server balance
+     before withdrawal.
+  */
+
+  await refreshBalance();
+
+  if (
+    Number(state?.balance || 0) <
+    requiredMRX
+  ) {
+    alert(
+      `Insufficient MRX balance.\n\n` +
+      `Required: ${formatNumber(
+        requiredMRX
+      )} MRX\n` +
+      `Balance: ${formatNumber(
+        state?.balance || 0
+      )} MRX`
+    );
+    return;
+  }
+
+  const wallet =
+    prompt(
+      "USDT TRC20 wallet address:"
+    );
+
+  if (
+    wallet === null ||
+    !wallet.trim()
+  ) {
+    return;
+  }
+
+  const cleanWallet =
+    wallet.trim();
+
+  if (
+    !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(
+      cleanWallet
+    )
+  ) {
+    alert(
+      "Invalid USDT TRC20 wallet address."
+    );
+    return;
+  }
+
+  withdraw.disabled = true;
 
   setStatus(
-    "Verifying advertisement..."
+    "Submitting withdrawal..."
   );
 
   const result =
     await call(
-      "/api/ad/claim",
+      "/api/withdraw",
       {
-        telegram_id:
-          getTelegramId(),
+        amount_usdt:
+          amount,
 
-        token
+        wallet:
+          cleanWallet
       }
     );
 
@@ -851,362 +1131,101 @@ async function claimAdReward() {
     render(result.user);
 
     alert(
-      `🎉 +${formatNumber(
-        result.amount,
-        4
-      )} MRX Ad Reward!`
+      `💸 Withdrawal #${
+        result.withdrawal_id
+      } submitted.\n\n` +
+      `Amount: ${amount} USDT\n` +
+      `Network: TRC20\n` +
+      `Status: Pending`
     );
 
     setStatus(
-      "Ad reward added successfully!"
+      "Withdrawal submitted."
     );
 
   } else {
 
     alert(
       result.error ||
-      "Ad reward could not be claimed."
+      "Withdrawal failed."
     );
 
-    setStatus(
-      result.error ||
-      "Ad reward could not be claimed."
-    );
+    await refreshBalance();
   }
 
-  resetAdButton();
+  withdraw.disabled = false;
+}
+
+);
 }
 
 /* =====================================================
-   RESET AD
-===================================================== */
-
-function resetAdButton() {
-
-  stopAdTimer();
-
-  adRunning = false;
-  adToken = null;
-  adExpiresAt = null;
-
-  if (ad) {
-    ad.disabled = false;
-    ad.textContent =
-      "📺 Watch Ad";
-  }
-}
-
-if (ad) {
-  ad.addEventListener(
-    "click",
-    startAd
-  );
-}
-
-/* =====================================================
-   REFERRAL BUTTON
-===================================================== */
-
-const ref = $("ref");
-
-if (ref) {
-
-  ref.addEventListener(
-    "click",
-    async () => {
-
-      if (!telegramAvailable()) {
-        alert(
-          "Please open MineRush2026 from Telegram."
-        );
-        return;
-      }
-
-      ref.disabled = true;
-
-      try {
-
-        const result =
-          await call(
-            "/api/referral"
-          );
-
-        if (!result.ok) {
-          alert(
-            result.error ||
-            "Referral unavailable."
-          );
-          return;
-        }
-
-        const link =
-          result.referralLink;
-
-        if (!link) {
-          alert(
-            "Referral link is unavailable."
-          );
-          return;
-        }
-
-        const shareUrl =
-          `https://t.me/share/url?url=${
-            encodeURIComponent(link)
-          }&text=${
-            encodeURIComponent(
-              "⛏️ Join MineRush2026 and start mining MRX!"
-            )
-          }`;
-
-        if (
-          tg &&
-          typeof tg.openTelegramLink ===
-            "function"
-        ) {
-
-          tg.openTelegramLink(
-            shareUrl
-          );
-
-        } else {
-
-          alert(
-            `Your referral link:\n\n${link}`
-          );
-        }
-
-      } catch (error) {
-
-        console.error(
-          "Referral error:",
-          error
-        );
-
-        alert(
-          "Referral system unavailable."
-        );
-
-      } finally {
-
-        ref.disabled = false;
-      }
-    }
-  );
-}
-
-/* =====================================================
-   WITHDRAW
-===================================================== */
-
-const withdraw = $("withdraw");
-
-if (withdraw) {
-
-  withdraw.addEventListener(
-    "click",
-    async () => {
-
-      if (!telegramAvailable()) {
-        alert(
-          "Please open MineRush2026 from Telegram."
-        );
-        return;
-      }
-
-      const minimum =
-        Number(
-          state?.minWithdrawUSDT ||
-          DEFAULT_MIN_WITHDRAW
-        );
-
-      const mrxPerUsdt =
-        Number(
-          state?.mrxPerUSDT ||
-          DEFAULT_MRX_PER_USDT
-        );
-
-      const amount =
-        prompt(
-          `USDT amount (minimum ${minimum}):`,
-          String(minimum)
-        );
-
-      if (
-        amount === null ||
-        amount.trim() === ""
-      ) {
-        return;
-      }
-
-      const numericAmount =
-        Number(amount.trim());
-
-      if (
-        !Number.isFinite(
-          numericAmount
-        ) ||
-        numericAmount < minimum
-      ) {
-
-        alert(
-          `Minimum withdrawal is ${minimum} USDT.`
-        );
-
-        return;
-      }
-
-      const requiredMRX =
-        numericAmount *
-        mrxPerUsdt;
-
-      if (
-        Number(state?.balance || 0) <
-        requiredMRX
-      ) {
-
-        alert(
-          `Insufficient MRX balance.\n\nRequired: ${formatNumber(
-            requiredMRX,
-            4
-          )} MRX`
-        );
-
-        return;
-      }
-
-      const wallet =
-        prompt(
-          "USDT TRC20 wallet address:"
-        );
-
-      if (
-        wallet === null ||
-        wallet.trim() === ""
-      ) {
-        return;
-      }
-
-      const cleanWallet =
-        wallet.trim();
-
-      if (
-        !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(
-          cleanWallet
-        )
-      ) {
-
-        alert(
-          "Please enter a valid USDT TRC20 wallet address."
-        );
-
-        return;
-      }
-
-      withdraw.disabled = true;
-
-      setStatus(
-        "Submitting withdrawal..."
-      );
-
-      const result =
-        await call(
-          "/api/withdraw",
-          {
-            telegram_id:
-              getTelegramId(),
-
-            amount_usdt:
-              numericAmount,
-
-            wallet:
-              cleanWallet
-          }
-        );
-
-      if (result.ok) {
-
-        render(result.user);
-
-        alert(
-          `💸 Withdrawal #${result.withdrawal_id} submitted successfully.\n\n` +
-          `Amount: ${numericAmount} USDT\n` +
-          `Network: TRC20\n\n` +
-          `Status: Pending`
-        );
-
-        setStatus(
-          "Withdrawal submitted and waiting for processing."
-        );
-
-      } else {
-
-        alert(
-          result.error ||
-          "Withdrawal failed."
-        );
-
-        setStatus(
-          result.error ||
-          "Withdrawal failed."
-        );
-      }
-
-      withdraw.disabled = false;
-    }
-  );
-}
-
-/* =====================================================
-   VISIBILITY
+PAGE VISIBILITY
 ===================================================== */
 
 document.addEventListener(
-  "visibilitychange",
-  () => {
+"visibilitychange",
+async () => {
 
-    if (!document.hidden) {
+if (!document.hidden) {
 
-      refreshTelegramUser();
-      renderProfile();
-      updateMiningTimer();
+  refreshTelegramUser();
+  renderProfile();
 
-      /*
-         If an ad expired while the Mini App
-         was in background, try claiming it
-         when user returns.
-      */
+  /*
+     IMPORTANT:
+     When user returns to app,
+     get the latest balance from server.
+  */
 
-      if (
-        adToken &&
-        adExpiresAt &&
-        Date.now() >= adExpiresAt &&
-        !adRunning
-      ) {
-        claimAdReward();
-      }
+  await refreshBalance();
 
-      /*
-         Refresh referral information.
-      */
+  await loadReferral();
 
-      if (telegramAvailable()) {
-        loadReferral();
-      }
-    }
+  updateMiningTimer();
+
+  if (
+    adToken &&
+    adExpiresAt &&
+    Date.now() >= adExpiresAt &&
+    adRunning
+  ) {
+    updateAdCountdown();
   }
+}
+
+}
 );
 
 /* =====================================================
-   TIMER LOOP
+PERIODIC SERVER SYNC
 ===================================================== */
 
 setInterval(
-  updateMiningTimer,
-  1000
+async () => {
+
+if (
+  !document.hidden &&
+  telegramAvailable()
+) {
+  await refreshBalance();
+}
+
+},
+30000
 );
 
 /* =====================================================
-   START
+MINING TIMER LOOP
+===================================================== */
+
+setInterval(
+updateMiningTimer,
+1000
+);
+
+/* =====================================================
+START APP
 ===================================================== */
 
 boot();

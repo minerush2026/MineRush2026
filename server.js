@@ -71,13 +71,15 @@ const BOT_USERNAME =
 
 const DB_FILE =
   cleanEnv(process.env.DB_FILE) ||
-  "./minerush.sqlite";
+  path.join(__dirname, "minerush.sqlite");
 
 /* =========================================================
    GAME SETTINGS
 ========================================================= */
 
 const MINING_RATE = 10;
+
+const MINING_CYCLE_SECONDS = 12 * 60 * 60;
 
 const DAILY_BONUS = 100;
 
@@ -89,13 +91,9 @@ const MRX_PER_USDT = 1000;
 
 const MIN_WITHDRAW_USDT = 10;
 
-const MINING_CYCLE_SECONDS =
-  12 * 60 * 60;
-
 const AD_WATCH_SECONDS = 30;
 
-const AD_COOLDOWN_MS =
-  5 * 60 * 1000;
+const AD_COOLDOWN_MS = 5 * 60 * 1000;
 
 /* =========================================================
    AD URL
@@ -206,14 +204,10 @@ ON ad_sessions(telegram_id);
 `);
 
 /* =========================================================
-   DATABASE MIGRATION
+   MIGRATION
 ========================================================= */
 
-function addColumnIfMissing(
-  table,
-  column,
-  definition
-) {
+function addColumnIfMissing(table, column, definition) {
   const columns = db
     .prepare(`PRAGMA table_info(${table})`)
     .all();
@@ -263,14 +257,15 @@ function now() {
 }
 
 function roundNumber(value, decimals = 8) {
-  const factor =
-    10 ** decimals;
+  const number = Number(value);
 
-  return (
-    Math.round(
-      Number(value) * factor
-    ) / factor
-  );
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  const factor = 10 ** decimals;
+
+  return Math.round(number * factor) / factor;
 }
 
 function getUser(telegramId) {
@@ -287,33 +282,33 @@ function getUser(telegramId) {
 }
 
 /* =========================================================
-   USER CREATE / UPDATE
+   CREATE / UPDATE USER
 ========================================================= */
 
 function createOrUpdateUser(tgUser) {
   if (!tgUser || !tgUser.id) {
-    throw new Error(
-      "Telegram user not found"
-    );
+    throw new Error("Telegram user not found");
   }
 
-  const telegramId =
-    String(tgUser.id);
+  const telegramId = String(tgUser.id);
 
-  const username =
-    String(tgUser.username || "");
+  const username = String(
+    tgUser.username || ""
+  );
 
-  const firstName =
-    String(tgUser.first_name || "Miner");
+  const firstName = String(
+    tgUser.first_name || "Miner"
+  );
 
-  const lastName =
-    String(tgUser.last_name || "");
+  const lastName = String(
+    tgUser.last_name || ""
+  );
 
-  const photoUrl =
-    String(tgUser.photo_url || "");
+  const photoUrl = String(
+    tgUser.photo_url || ""
+  );
 
-  let user =
-    getUser(telegramId);
+  let user = getUser(telegramId);
 
   if (!user) {
     const timestamp = now();
@@ -333,7 +328,15 @@ function createOrUpdateUser(tgUser) {
         created_at,
         updated_at
       )
-      VALUES (?, ?, ?, ?, ?, 0, NULL, NULL, NULL, ?, ?)
+      VALUES (
+        ?, ?, ?, ?, ?,
+        0,
+        NULL,
+        NULL,
+        NULL,
+        ?,
+        ?
+      )
       `
     ).run(
       telegramId,
@@ -366,85 +369,65 @@ function createOrUpdateUser(tgUser) {
     );
   }
 
-  user =
-    getUser(telegramId);
-
-  return user;
+  return getUser(telegramId);
 }
 
 /* =========================================================
-   PUBLIC USER DATA
+   PUBLIC USER
 ========================================================= */
 
 function publicUser(user) {
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   return {
-    id: user.id,
+    id: Number(user.id),
 
-    uid: String(
-      user.telegram_id
+    uid: String(user.telegram_id),
+
+    telegram_id: String(user.telegram_id),
+
+    username: user.username || "",
+
+    first_name: user.first_name || "",
+
+    last_name: user.last_name || "",
+
+    photo_url: user.photo_url || "",
+
+    balance: roundNumber(
+      user.balance || 0
     ),
-
-    telegram_id: String(
-      user.telegram_id
-    ),
-
-    username:
-      user.username || "",
-
-    first_name:
-      user.first_name || "",
-
-    last_name:
-      user.last_name || "",
-
-    photo_url:
-      user.photo_url || "",
-
-    balance:
-      roundNumber(
-        Number(user.balance || 0)
-      ),
 
     mining_started_at:
       user.mining_started_at
-        ? Number(
-            user.mining_started_at
-          )
+        ? Number(user.mining_started_at)
         : null,
 
     mining_last_update:
       user.mining_last_update
-        ? Number(
-            user.mining_last_update
-          )
+        ? Number(user.mining_last_update)
         : null,
 
     mining_cycle_ends_at:
       user.mining_cycle_ends_at
-        ? Number(
-            user.mining_cycle_ends_at
-          )
+        ? Number(user.mining_cycle_ends_at)
         : null,
 
     last_daily_bonus:
       user.last_daily_bonus || null,
 
     referral_count:
-      Number(
-        user.referral_count || 0
-      ),
+      Number(user.referral_count || 0),
 
     referral_earnings:
       roundNumber(
-        Number(
-          user.referral_earnings || 0
-        )
+        user.referral_earnings || 0
       ),
 
     created_at:
-      Number(user.created_at)
+      Number(user.created_at || 0)
   };
 }
 
@@ -455,7 +438,7 @@ function publicUser(user) {
 function verifyTelegram(initData) {
   if (!BOT_TOKEN) {
     throw new Error(
-      "TELEGRAM_BOT_TOKEN is not configured on server"
+      "TELEGRAM_BOT_TOKEN is not configured"
     );
   }
 
@@ -465,11 +448,9 @@ function verifyTelegram(initData) {
     );
   }
 
-  const params =
-    new URLSearchParams(initData);
+  const params = new URLSearchParams(initData);
 
-  const receivedHash =
-    params.get("hash");
+  const receivedHash = params.get("hash");
 
   if (!receivedHash) {
     throw new Error(
@@ -479,35 +460,29 @@ function verifyTelegram(initData) {
 
   params.delete("hash");
 
-  const dataCheckString =
-    [...params.entries()]
-      .sort(
-        ([a], [b]) =>
-          a.localeCompare(b)
-      )
-      .map(
-        ([key, value]) =>
-          `${key}=${value}`
-      )
-      .join("\n");
+  const dataCheckString = [...params.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([key, value]) =>
+        `${key}=${value}`
+    )
+    .join("\n");
 
-  const secretKey =
-    crypto
-      .createHmac(
-        "sha256",
-        "WebAppData"
-      )
-      .update(BOT_TOKEN)
-      .digest();
+  const secretKey = crypto
+    .createHmac(
+      "sha256",
+      "WebAppData"
+    )
+    .update(BOT_TOKEN)
+    .digest();
 
-  const calculatedHash =
-    crypto
-      .createHmac(
-        "sha256",
-        secretKey
-      )
-      .update(dataCheckString)
-      .digest("hex");
+  const calculatedHash = crypto
+    .createHmac(
+      "sha256",
+      secretKey
+    )
+    .update(dataCheckString)
+    .digest("hex");
 
   if (
     receivedHash.length !==
@@ -519,16 +494,10 @@ function verifyTelegram(initData) {
   }
 
   const receivedBuffer =
-    Buffer.from(
-      receivedHash,
-      "hex"
-    );
+    Buffer.from(receivedHash, "hex");
 
   const calculatedBuffer =
-    Buffer.from(
-      calculatedHash,
-      "hex"
-    );
+    Buffer.from(calculatedHash, "hex");
 
   if (
     !crypto.timingSafeEqual(
@@ -541,38 +510,29 @@ function verifyTelegram(initData) {
     );
   }
 
-  const authDate =
-    Number(
-      params.get("auth_date")
-    );
+  const authDate = Number(
+    params.get("auth_date")
+  );
 
-  if (
-    !Number.isFinite(authDate)
-  ) {
+  if (!Number.isFinite(authDate)) {
     throw new Error(
       "Invalid Telegram auth_date"
     );
   }
 
-  const currentUnix =
-    Math.floor(
-      Date.now() / 1000
-    );
+  const currentUnix = Math.floor(
+    Date.now() / 1000
+  );
 
-  const age =
-    currentUnix - authDate;
+  const age = currentUnix - authDate;
 
-  if (
-    age < -60 ||
-    age > 86400
-  ) {
+  if (age < -60 || age > 86400) {
     throw new Error(
       "Telegram initData expired"
     );
   }
 
-  const userRaw =
-    params.get("user");
+  const userRaw = params.get("user");
 
   if (!userRaw) {
     throw new Error(
@@ -583,8 +543,7 @@ function verifyTelegram(initData) {
   let user;
 
   try {
-    user =
-      JSON.parse(userRaw);
+    user = JSON.parse(userRaw);
   } catch {
     throw new Error(
       "Invalid Telegram user JSON"
@@ -625,11 +584,9 @@ function processReferral(
     return false;
   }
 
-  const newId =
-    String(newUserId);
+  const newId = String(newUserId);
 
-  const newUser =
-    getUser(newId);
+  const newUser = getUser(newId);
 
   if (!newUser) {
     return false;
@@ -642,9 +599,7 @@ function processReferral(
   let referrerId =
     String(startParam).trim();
 
-  if (
-    referrerId.startsWith("ref_")
-  ) {
+  if (referrerId.startsWith("ref_")) {
     referrerId =
       referrerId.substring(4);
   }
@@ -653,9 +608,7 @@ function processReferral(
     return false;
   }
 
-  if (
-    referrerId === newId
-  ) {
+  if (referrerId === newId) {
     return false;
   }
 
@@ -685,9 +638,7 @@ function processReferral(
           newId
         );
 
-    if (
-      updated.changes !== 1
-    ) {
+    if (updated.changes !== 1) {
       return false;
     }
 
@@ -695,8 +646,7 @@ function processReferral(
       `
       UPDATE users
       SET
-        balance =
-          balance + ?,
+        balance = balance + ?,
         referral_count =
           referral_count + 1,
         referral_earnings =
@@ -735,12 +685,11 @@ function processReferral(
 }
 
 /* =========================================================
-   MINING START
+   START MINING
 ========================================================= */
 
 function startMining(telegramId) {
-  const user =
-    getUser(telegramId);
+  const user = getUser(telegramId);
 
   if (!user) {
     throw new Error(
@@ -748,14 +697,11 @@ function startMining(telegramId) {
     );
   }
 
-  if (
-    user.mining_started_at
-  ) {
+  if (user.mining_started_at) {
     return user;
   }
 
-  const timestamp =
-    now();
+  const timestamp = now();
 
   const endTime =
     timestamp +
@@ -780,20 +726,15 @@ function startMining(telegramId) {
     telegramId
   );
 
-  return getUser(
-    telegramId
-  );
+  return getUser(telegramId);
 }
 
 /* =========================================================
-   MINING SETTLEMENT
+   SETTLE MINING
 ========================================================= */
 
-function settleMining(
-  telegramId
-) {
-  const user =
-    getUser(telegramId);
+function settleMining(telegramId) {
+  const user = getUser(telegramId);
 
   if (!user) {
     throw new Error(
@@ -808,31 +749,22 @@ function settleMining(
     return user;
   }
 
-  const current =
-    now();
+  const current = now();
 
   const lastUpdate =
-    Number(
-      user.mining_last_update
-    );
+    Number(user.mining_last_update);
 
   const cycleEnd =
     Number(
       user.mining_cycle_ends_at ||
-        (
-          Number(
-            user.mining_started_at
-          ) +
-          MINING_CYCLE_SECONDS *
-            1000
-        )
+      (
+        Number(user.mining_started_at) +
+        MINING_CYCLE_SECONDS * 1000
+      )
     );
 
   const effectiveNow =
-    Math.min(
-      current,
-      cycleEnd
-    );
+    Math.min(current, cycleEnd);
 
   const elapsedMs =
     Math.max(
@@ -844,51 +776,61 @@ function settleMining(
     return user;
   }
 
-  const elapsedSeconds =
-    elapsedMs / 1000;
-
   const reward =
-    (
-      elapsedSeconds / 3600
-    ) * MINING_RATE;
-
-  const newLastUpdate =
-    effectiveNow;
+    roundNumber(
+      (elapsedMs / 1000 / 3600) *
+      MINING_RATE
+    );
 
   const cycleFinished =
     effectiveNow >= cycleEnd;
 
   db.transaction(() => {
-    db.prepare(
-      `
-      UPDATE users
-      SET
-        balance =
-          balance + ?,
-        mining_last_update = ?,
-        mining_started_at = CASE
-          WHEN ? = 1 THEN NULL
-          ELSE mining_started_at
-        END,
-        mining_cycle_ends_at = CASE
-          WHEN ? = 1 THEN NULL
-          ELSE mining_cycle_ends_at
-        END,
-        updated_at = ?
-      WHERE telegram_id = ?
-      AND mining_last_update = ?
-      `
-    ).run(
-      reward,
-      newLastUpdate,
-      cycleFinished ? 1 : 0,
-      cycleFinished ? 1 : 0,
-      current,
-      telegramId,
-      lastUpdate
-    );
+    const updated =
+      db
+        .prepare(
+          `
+          UPDATE users
+          SET
+            balance = balance + ?,
 
-    if (reward > 0) {
+            mining_last_update = ?,
+
+            mining_started_at =
+              CASE
+                WHEN ? = 1
+                THEN NULL
+                ELSE mining_started_at
+              END,
+
+            mining_cycle_ends_at =
+              CASE
+                WHEN ? = 1
+                THEN NULL
+                ELSE mining_cycle_ends_at
+              END,
+
+            updated_at = ?
+
+          WHERE telegram_id = ?
+
+          AND mining_last_update = ?
+          `
+        )
+        .run(
+          reward,
+          effectiveNow,
+          cycleFinished ? 1 : 0,
+          cycleFinished ? 1 : 0,
+          current,
+          telegramId,
+          lastUpdate
+        );
+
+    if (
+      updated.changes === 1 &&
+      reward > 0
+    ) {
       db.prepare(
         `
         INSERT INTO transactions (
@@ -912,105 +854,62 @@ function settleMining(
     }
   })();
 
-  return getUser(
-    telegramId
-  );
+  return getUser(telegramId);
 }
 
 /* =========================================================
-   FRONTEND
+   FRONTEND FILES
 ========================================================= */
 
-app.get(
-  "/",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "index.html"
-      )
-    );
-  }
-);
+app.get("/", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "index.html")
+  );
+});
 
-app.get(
-  "/index.html",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "index.html"
-      )
-    );
-  }
-);
+app.get("/index.html", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "index.html")
+  );
+});
 
-app.get(
-  "/style.css",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "style.css"
-      )
-    );
-  }
-);
+app.get("/style.css", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "style.css")
+  );
+});
 
-app.get(
-  "/app.js",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "app.js"
-      )
-    );
-  }
-);
+app.get("/app.js", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "app.js")
+  );
+});
 
-app.get(
-  "/admin",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "admin.html"
-      )
-    );
-  }
-);
+app.get("/admin", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "admin.html")
+  );
+});
 
-app.get(
-  "/admin.html",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "admin.html"
-      )
-    );
-  }
-);
+app.get("/admin.html", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "admin.html")
+  );
+});
 
 /* =========================================================
    HEALTH
 ========================================================= */
 
-app.get(
-  "/api/health",
-  (req, res) => {
-    res.json({
-      ok: true,
-      service: "MineRush2026",
-      status: "online",
-      telegramConfigured:
-        Boolean(BOT_TOKEN),
-      adminConfigured:
-        Boolean(ADMIN_KEY)
-    });
-  }
-);
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    service: "MineRush2026",
+    status: "online",
+    telegramConfigured: Boolean(BOT_TOKEN),
+    adminConfigured: Boolean(ADMIN_KEY)
+  });
+});
 
 /* =========================================================
    BOOTSTRAP
@@ -1043,25 +942,12 @@ app.post(
           );
       }
 
-      /*
-       * IMPORTANT:
-       * Do NOT automatically add mining reward here.
-       * Mining reward is settled by server when requested.
-       */
-
       user =
         settleMining(
           user.telegram_id
         );
 
-      /*
-       * If user has no active cycle,
-       * automatically start a fresh cycle.
-       */
-
-      if (
-        !user.mining_started_at
-      ) {
+      if (!user.mining_started_at) {
         user =
           startMining(
             user.telegram_id
@@ -1138,14 +1024,7 @@ app.post(
           user.telegram_id
         );
 
-      /*
-       * If previous 12 hour cycle ended,
-       * immediately start another cycle.
-       */
-
-      if (
-        !updated.mining_started_at
-      ) {
+      if (!updated.mining_started_at) {
         updated =
           startMining(
             user.telegram_id
@@ -1187,7 +1066,7 @@ app.post(
           auth.user
         );
 
-      let updated =
+      const updated =
         settleMining(
           user.telegram_id
         );
@@ -1247,13 +1126,14 @@ app.post(
         });
       }
 
+      const timestamp = now();
+
       db.transaction(() => {
         db.prepare(
           `
           UPDATE users
           SET
-            balance =
-              balance + ?,
+            balance = balance + ?,
             last_daily_bonus = ?,
             updated_at = ?
           WHERE telegram_id = ?
@@ -1261,7 +1141,7 @@ app.post(
         ).run(
           DAILY_BONUS,
           today,
-          now(),
+          timestamp,
           user.telegram_id
         );
 
@@ -1281,14 +1161,16 @@ app.post(
           "daily",
           DAILY_BONUS,
           "Daily bonus",
-          now()
+          timestamp
         );
       })();
 
       res.json({
         ok: true,
+
         amount:
           DAILY_BONUS,
+
         user:
           publicUser(
             getUser(
@@ -1340,9 +1222,7 @@ app.post(
       if (lastAd) {
         const elapsed =
           now() -
-          Number(
-            lastAd.created_at
-          );
+          Number(lastAd.created_at);
 
         if (
           elapsed <
@@ -1498,16 +1378,12 @@ app.post(
 
       if (
         current <
-        Number(
-          session.expires_at
-        )
+        Number(session.expires_at)
       ) {
         const remaining =
           Math.ceil(
             (
-              Number(
-                session.expires_at
-              ) -
+              Number(session.expires_at) -
               current
             ) / 1000
           );
@@ -1547,8 +1423,7 @@ app.post(
           `
           UPDATE users
           SET
-            balance =
-              balance + ?,
+            balance = balance + ?,
             updated_at = ?
           WHERE telegram_id = ?
           `
@@ -1632,9 +1507,7 @@ app.post(
 
         referralEarnings:
           roundNumber(
-            Number(
-              user.referral_earnings || 0
-            )
+            user.referral_earnings || 0
           ),
 
         referralBonus:
@@ -1653,7 +1526,7 @@ app.post(
 );
 
 /* =========================================================
-   TRC20 VALIDATION
+   TRC20
 ========================================================= */
 
 function validTRC20(wallet) {
@@ -1716,8 +1589,7 @@ app.post(
 
       const requiredMRX =
         roundNumber(
-          amount *
-            MRX_PER_USDT
+          amount * MRX_PER_USDT
         );
 
       const withdrawalId =
@@ -1790,7 +1662,9 @@ app.post(
             now()
           );
 
-          return result.lastInsertRowid;
+          return Number(
+            result.lastInsertRowid
+          );
         })();
 
       res.json({
@@ -1862,8 +1736,10 @@ app.post(
 
       res.json({
         ok: true,
+
         uid:
           user.telegram_id,
+
         items
       });
     } catch (error) {
@@ -1879,11 +1755,7 @@ app.post(
    ADMIN AUTH
 ========================================================= */
 
-function requireAdmin(
-  req,
-  res,
-  next
-) {
+function requireAdmin(req, res, next) {
   if (!ADMIN_KEY) {
     return res.status(503).json({
       ok: false,
@@ -1919,7 +1791,7 @@ function requireAdmin(
 
   if (
     suppliedBuffer.length !==
-    adminBuffer.length ||
+      adminBuffer.length ||
     !crypto.timingSafeEqual(
       suppliedBuffer,
       adminBuffer
@@ -2021,16 +1893,12 @@ app.get(
 
         totalMRX:
           roundNumber(
-            Number(
-              totalMRX || 0
-            )
+            totalMRX || 0
           ),
 
         totalPaidUSDT:
           roundNumber(
-            Number(
-              paidUSDT || 0
-            )
+            paidUSDT || 0
           )
       });
     } catch (error) {
@@ -2145,9 +2013,7 @@ app.post(
   (req, res) => {
     try {
       const id =
-        Number(
-          req.params.id
-        );
+        Number(req.params.id);
 
       const status =
         String(
@@ -2208,7 +2074,7 @@ app.post(
               Number(
                 withdrawal.amount_usdt
               ) *
-                MRX_PER_USDT
+              MRX_PER_USDT
             );
 
           db.prepare(
@@ -2283,10 +2149,7 @@ app.post(
    TELEGRAM API
 ========================================================= */
 
-async function telegram(
-  method,
-  body
-) {
+async function telegram(method, body) {
   if (!BOT_TOKEN) {
     throw new Error(
       "TELEGRAM_BOT_TOKEN is not configured"
@@ -2315,7 +2178,7 @@ async function telegram(
   if (!data.ok) {
     throw new Error(
       data.description ||
-        "Telegram API error"
+      "Telegram API error"
     );
   }
 
@@ -2323,7 +2186,7 @@ async function telegram(
 }
 
 /* =========================================================
-   CHECK TELEGRAM TOKEN
+   BOT CHECK
 ========================================================= */
 
 async function checkTelegramToken() {
@@ -2358,22 +2221,17 @@ async function checkTelegramToken() {
 }
 
 /* =========================================================
-   TELEGRAM WEBHOOK
+   WEBHOOK
 ========================================================= */
 
 app.post(
   "/telegram/webhook",
   async (req, res) => {
-    /*
-     * Always acknowledge Telegram quickly.
-     */
     res.sendStatus(200);
 
     try {
       if (!BOT_TOKEN) {
-        throw new Error(
-          "TELEGRAM_BOT_TOKEN is not configured"
-        );
+        return;
       }
 
       const message =
@@ -2482,7 +2340,7 @@ app.post(
 );
 
 /* =========================================================
-   WEBHOOK SETUP
+   SET WEBHOOK
 ========================================================= */
 
 async function setupWebhook() {
@@ -2495,7 +2353,12 @@ async function setupWebhook() {
   }
 
   try {
-    await checkTelegramToken();
+    const valid =
+      await checkTelegramToken();
+
+    if (!valid) {
+      return;
+    }
 
     const webhookUrl =
       `${APP_URL}/telegram/webhook`;
@@ -2535,31 +2398,23 @@ app.use(
   (req, res) => {
     res.status(404).json({
       ok: false,
-      error:
-        "Not Found"
+      error: "Not Found"
     });
   }
 );
 
 /* =========================================================
-   ERROR HANDLER
+   ERROR
 ========================================================= */
 
 app.use(
-  (
-    error,
-    req,
-    res,
-    next
-  ) => {
+  (error, req, res, next) => {
     console.error(
       "Server error:",
       error
     );
 
-    if (
-      res.headersSent
-    ) {
+    if (res.headersSent) {
       return next(error);
     }
 
@@ -2572,7 +2427,7 @@ app.use(
 );
 
 /* =========================================================
-   START SERVER
+   START
 ========================================================= */
 
 const server =
@@ -2613,7 +2468,7 @@ const server =
       );
 
       console.log(
-        `Mining cycle: 12 hours`
+        "Mining cycle: 12 hours"
       );
 
       console.log(
@@ -2641,7 +2496,7 @@ const server =
   );
 
 /* =========================================================
-   GRACEFUL SHUTDOWN
+   SHUTDOWN
 ========================================================= */
 
 function shutdown(signal) {

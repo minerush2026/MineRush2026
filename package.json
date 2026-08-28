@@ -1,6 +1,6 @@
 {
-  "name": "minerush2026-backend",
-  "version": "1.0.0",
+  "name": "minerush2026",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {

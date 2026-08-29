@@ -1,1867 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
 
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0"
->
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-<title>MineRush2026 Admin</title>
+  <title>MineRush2026 Admin</title>
 
-<style>
-
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  font-family:Arial,sans-serif;
-  background:#020617;
-  color:#f8fafc;
-}
-
-.container{
-  max-width:1400px;
-  margin:auto;
-  padding:20px;
-}
-
-h1,h2{
-  margin-top:0;
-}
-
-.card{
-  background:#0f172a;
-  border:1px solid #1e293b;
-  border-radius:16px;
-  padding:18px;
-  margin-bottom:18px;
-}
-
-.login{
-  max-width:450px;
-  margin:80px auto;
-}
-
-input,
-select,
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:9px;
-  border:1px solid #334155;
-  font-size:15px;
-}
-
-input,
-select{
-  background:#1e293b;
-  color:white;
-}
-
-button{
-  border:0;
-  background:#16a34a;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:hover{
-  opacity:.9;
-}
-
-.red{
-  background:#dc2626;
-}
-
-.orange{
-  background:#d97706;
-}
-
-.blue{
-  background:#2563eb;
-}
-
-.gray{
-  background:#475569;
-}
-
-.hidden{
-  display:none!important;
-}
-
-.message{
-  margin-top:12px;
-  padding:10px;
-  border-radius:8px;
-}
-
-.success{
-  background:#14532d;
-}
-
-.error{
-  background:#7f1d1d;
-}
-
-.stats{
-  display:grid;
-  grid-template-columns:
-    repeat(auto-fit,minmax(180px,1fr));
-  gap:14px;
-}
-
-.stat{
-  background:#0f172a;
-  border:1px solid #1e293b;
-  border-radius:16px;
-  padding:18px;
-}
-
-.stat-title{
-  color:#94a3b8;
-  font-size:14px;
-}
-
-.stat-value{
-  font-size:26px;
-  font-weight:bold;
-  margin-top:8px;
-}
-
-.toolbar{
-  display:grid;
-  grid-template-columns:
-    minmax(200px,1fr)
-    150px
-    150px;
-  gap:10px;
-}
-
-.table-wrap{
-  overflow-x:auto;
-}
-
-table{
-  width:100%;
-  min-width:1000px;
-  border-collapse:collapse;
-}
-
-th,
-td{
-  padding:11px;
-  border-bottom:1px solid #1e293b;
-  text-align:left;
-  font-size:13px;
-}
-
-th{
-  color:#94a3b8;
-}
-
-.status{
-  display:inline-block;
-  padding:5px 9px;
-  border-radius:20px;
-  font-size:12px;
-  font-weight:bold;
-}
-
-.pending{
-  background:#92400e;
-}
-
-.paid{
-  background:#166534;
-}
-
-.rejected{
-  background:#991b1b;
-}
-
-.blocked{
-  background:#991b1b;
-}
-
-.active{
-  background:#166534;
-}
-
-.actions{
-  display:flex;
-  gap:5px;
-  flex-wrap:wrap;
-}
-
-.actions button{
-  width:auto;
-  margin:0;
-  padding:7px 10px;
-  font-size:12px;
-}
-
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.75);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:15px;
-  z-index:1000;
-}
-
-.modal-box{
-  width:100%;
-  max-width:800px;
-  max-height:90vh;
-  overflow:auto;
-  background:#0f172a;
-  border:1px solid #334155;
-  border-radius:16px;
-  padding:20px;
-}
-
-.detail-grid{
-  display:grid;
-  grid-template-columns:
-    repeat(auto-fit,minmax(180px,1fr));
-  gap:10px;
-}
-
-.detail{
-  background:#1e293b;
-  padding:12px;
-  border-radius:9px;
-}
-
-.small{
-  color:#94a3b8;
-  font-size:12px;
-}
-
-.close{
-  background:#475569;
-}
-
-@media(max-width:700px){
-
-  .container{
-    padding:10px;
-  }
-
-  .toolbar{
-    grid-template-columns:1fr;
-  }
-
-}
-
-</style>
-</head>
-
-<body>
-
-<!-- LOGIN -->
-
-<div
-  id="loginScreen"
-  class="container"
->
-
-  <div class="card login">
-
-    <h1>🔐 MineRush2026</h1>
-
-    <p class="small">
-      Secure Admin Panel
-    </p>
-
-    <input
-      id="adminKey"
-      type="password"
-      placeholder="Enter ADMIN_KEY"
-      autocomplete="off"
-    >
-
-    <button onclick="login()">
-      🔑 Login
-    </button>
-
-    <div
-      id="loginMessage"
-      class="hidden"
-    ></div>
-
-  </div>
-
-</div>
-
-<!-- DASHBOARD -->
-
-<div
-  id="dashboard"
-  class="container hidden"
->
-
-  <div class="card">
-
-    <h1>🚀 MineRush2026 Admin</h1>
-
-    <div class="actions">
-
-      <button
-        class="blue"
-        onclick="loadAll()"
-      >
-        🔄 Refresh
-      </button>
-
-      <button
-        class="red"
-        onclick="logout()"
-      >
-        🚪 Logout
-      </button>
-
-    </div>
-
-  </div>
-
-  <!-- STATS -->
-
-  <div class="stats">
-
-    <div class="stat">
-      <div class="stat-title">
-        👥 Total Users
-      </div>
-
-      <div
-        id="totalUsers"
-        class="stat-value"
-      >
-        0
-      </div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-title">
-        🚫 Blocked Users
-      </div>
-
-      <div
-        id="blockedUsers"
-        class="stat-value"
-      >
-        0
-      </div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-title">
-        💰 Total MRX
-      </div>
-
-      <div
-        id="totalMRX"
-        class="stat-value"
-      >
-        0
-      </div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-title">
-        ⏳ Pending Withdrawals
-      </div>
-
-      <div
-        id="pending"
-        class="stat-value"
-      >
-        0
-      </div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-title">
-        💵 Paid USDT
-      </div>
-
-      <div
-        id="paidUSDT"
-        class="stat-value"
-      >
-        0
-      </div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-title">
-        💸 Total Withdrawals
-      </div>
-
-      <div
-        id="totalWithdrawals"
-        class="stat-value"
-      >
-        0
-      </div>
-    </div>
-
-  </div>
-
-  <!-- USERS -->
-
-  <div class="card">
-
-    <h2>👥 Users</h2>
-
-    <div class="toolbar">
-
-      <input
-        id="userSearch"
-        placeholder="Search UID / username / name"
-        onkeydown="if(event.key==='Enter') loadUsers()"
-      >
-
-      <button
-        class="blue"
-        onclick="loadUsers()"
-      >
-        🔎 Search
-      </button>
-
-      <button
-        class="gray"
-        onclick="clearSearch()"
-      >
-        Clear
-      </button>
-
-    </div>
-
-    <br>
-
-    <div class="table-wrap">
-
-      <table>
-
-        <thead>
-
-          <tr>
-            <th>ID</th>
-            <th>Telegram ID</th>
-            <th>User</th>
-            <th>Balance</th>
-            <th>Referral</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Action</th>
-          </tr>
-
-        </thead>
-
-        <tbody
-          id="usersTable"
-        ></tbody>
-
-      </table>
-
-    </div>
-
-  </div>
-
-  <!-- WITHDRAWALS -->
-
-  <div class="card">
-
-    <h2>💸 Withdrawals</h2>
-
-    <select
-      id="withdrawStatus"
-      onchange="loadWithdrawals()"
-    >
-      <option value="all">
-        All Withdrawals
-      </option>
-
-      <option value="pending">
-        Pending
-      </option>
-
-      <option value="paid">
-        Paid
-      </option>
-
-      <option value="rejected">
-        Rejected
-      </option>
-    </select>
-
-    <br>
-
-    <div class="table-wrap">
-
-      <table>
-
-        <thead>
-
-          <tr>
-            <th>ID</th>
-            <th>User</th>
-            <th>Amount</th>
-            <th>Wallet</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Action</th>
-          </tr>
-
-        </thead>
-
-        <tbody
-          id="withdrawalsTable"
-        ></tbody>
-
-      </table>
-
-    </div>
-
-  </div>
-
-  <!-- ADMIN LOGS -->
-
-  <div class="card">
-
-    <h2>📜 Admin Activity</h2>
-
-    <div class="table-wrap">
-
-      <table>
-
-        <thead>
-
-          <tr>
-            <th>ID</th>
-            <th>Action</th>
-            <th>Target</th>
-            <th>Details</th>
-            <th>Date</th>
-          </tr>
-
-        </thead>
-
-        <tbody
-          id="logsTable"
-        ></tbody>
-
-      </table>
-
-    </div>
-
-  </div>
-
-</div>
-
-<!-- USER MODAL -->
-
-<div
-  id="userModal"
-  class="modal hidden"
->
-
-  <div class="modal-box">
-
-    <h2>👤 User Details</h2>
-
-    <div
-      id="userDetails"
-    ></div>
-
-    <hr>
-
-    <h3>💰 Balance Adjustment</h3>
-
-    <input
-      id="balanceAmount"
-      type="number"
-      step="0.0001"
-      placeholder="Example: 500 or -500"
-    >
-
-    <input
-      id="balanceNote"
-      placeholder="Reason"
-    >
-
-    <button
-      class="blue"
-      onclick="adjustBalance()"
-    >
-      💰 Update Balance
-    </button>
-
-    <br>
-
-    <button
-      id="blockButton"
-      class="red"
-      onclick="toggleBlock()"
-    >
-      🚫 Block User
-    </button>
-
-    <br>
-
-    <button
-      class="close"
-      onclick="closeModal()"
-    >
-      Close
-    </button>
-
-  </div>
-
-</div>
-
-<script>
-
-"use strict";
-
-const API = "";
-
-let adminSession = "";
-
-let selectedUser = null;
-
-/* =========================================================
-   HELPERS
-========================================================= */
-
-function escapeHTML(value){
-
-  return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-
-}
-
-function formatDate(timestamp){
-
-  if(!timestamp){
-    return "-";
-  }
-
-  return new Date(
-    Number(timestamp)
-  ).toLocaleString();
-
-}
-
-function showLoginMessage(
-  text,
-  type="error"
-){
-
-  const box =
-    document.getElementById(
-      "loginMessage"
-    );
-
-  box.textContent = text;
-
-  box.className =
-    `message ${type}`;
-
-}
-
-function showDashboard(){
-
-  document
-    .getElementById(
-      "loginScreen"
-    )
-    .classList.add("hidden");
-
-  document
-    .getElementById(
-      "dashboard"
-    )
-    .classList.remove("hidden");
-
-}
-
-function showLogin(){
-
-  document
-    .getElementById(
-      "dashboard"
-    )
-    .classList.add("hidden");
-
-  document
-    .getElementById(
-      "loginScreen"
-    )
-    .classList.remove("hidden");
-
-}
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-async function login(){
-
-  const key =
-    document
-      .getElementById(
-        "adminKey"
-      )
-      .value
-      .trim();
-
-  if(!key){
-
-    showLoginMessage(
-      "Please enter ADMIN_KEY"
-    );
-
-    return;
-  }
-
-  try{
-
-    const response =
-      await fetch(
-        `${API}/api/admin/login`,
-        {
-          method:"POST",
-
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              key
-            })
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if(
-      !response.ok ||
-      !data.ok
-    ){
-
-      throw new Error(
-        data.error ||
-        "Login failed"
-      );
-
+  <style>
+    * {
+      box-sizing: border-box;
     }
 
-    adminSession =
-      data.session;
-
-    sessionStorage.setItem(
-      "minerush_admin_session",
-      adminSession
-    );
-
-    showDashboard();
-
-    loadAll();
-
-  }catch(error){
-
-    showLoginMessage(
-      error.message
-    );
-
-  }
-
-}
-
-/* =========================================================
-   API
-========================================================= */
-
-async function api(
-  url,
-  options={}
-){
-
-  const headers = {
-
-    ...(options.headers || {}),
-
-    "x-admin-session":
-      adminSession
-
-  };
-
-  const response =
-    await fetch(
-      url,
-      {
-        ...options,
-        headers
-      }
-    );
-
-  let data;
-
-  try{
-    data =
-      await response.json();
-  }catch{
-    throw new Error(
-      "Invalid server response"
-    );
-  }
-
-  if(
-    response.status === 401
-  ){
-
-    sessionStorage.removeItem(
-      "minerush_admin_session"
-    );
-
-    adminSession = "";
-
-    showLogin();
-
-    throw new Error(
-      "Admin session expired. Please login again."
-    );
-
-  }
-
-  if(
-    !response.ok ||
-    !data.ok
-  ){
-
-    throw new Error(
-      data.error ||
-      "Request failed"
-    );
-
-  }
-
-  return data;
-
-}
-
-/* =========================================================
-   LOAD ALL
-========================================================= */
-
-async function loadAll(){
-
-  try{
-
-    await Promise.all([
-      loadStats(),
-      loadUsers(),
-      loadWithdrawals(),
-      loadLogs()
-    ]);
-
-  }catch(error){
-
-    alert(error.message);
-
-  }
-
-}
-
-/* =========================================================
-   STATS
-========================================================= */
-
-async function loadStats(){
-
-  const data =
-    await api(
-      `${API}/api/admin/stats`
-    );
-
-  document
-    .getElementById(
-      "totalUsers"
-    )
-    .textContent =
-      Number(
-        data.users || 0
-      ).toLocaleString();
-
-  document
-    .getElementById(
-      "blockedUsers"
-    )
-    .textContent =
-      Number(
-        data.blockedUsers || 0
-      ).toLocaleString();
-
-  document
-    .getElementById(
-      "totalMRX"
-    )
-    .textContent =
-      Number(
-        data.totalMRX || 0
-      ).toLocaleString(
-        undefined,
-        {
-          maximumFractionDigits:4
-        }
-      );
-
-  document
-    .getElementById(
-      "pending"
-    )
-    .textContent =
-      Number(
-        data.pendingWithdrawals || 0
-      ).toLocaleString();
-
-  document
-    .getElementById(
-      "paidUSDT"
-    )
-    .textContent =
-      Number(
-        data.totalPaidUSDT || 0
-      ).toFixed(2);
-
-  document
-    .getElementById(
-      "totalWithdrawals"
-    )
-    .textContent =
-      Number(
-        data.totalWithdrawals || 0
-      ).toLocaleString();
-
-}
-
-/* =========================================================
-   USERS
-========================================================= */
-
-async function loadUsers(){
-
-  const search =
-    document
-      .getElementById(
-        "userSearch"
-      )
-      .value
-      .trim();
-
-  const url =
-    search
-      ? `${API}/api/admin/users?search=${encodeURIComponent(search)}`
-      : `${API}/api/admin/users`;
-
-  const data =
-    await api(url);
-
-  const tbody =
-    document.getElementById(
-      "usersTable"
-    );
-
-  tbody.innerHTML = "";
-
-  for(
-    const user of data.users
-  ){
-
-    const tr =
-      document.createElement(
-        "tr"
-      );
-
-    const status =
-      user.blocked
-        ? `<span class="status blocked">BLOCKED</span>`
-        : `<span class="status active">ACTIVE</span>`;
-
-    tr.innerHTML = `
-
-      <td>
-        ${escapeHTML(user.id)}
-      </td>
-
-      <td>
-        ${escapeHTML(user.telegram_id)}
-      </td>
-
-      <td>
-        ${
-          user.username
-            ? "@" +
-              escapeHTML(user.username)
-            : escapeHTML(
-                user.first_name || "-"
-              )
-        }
-      </td>
-
-      <td>
-        ${Number(
-          user.balance || 0
-        ).toLocaleString(
-          undefined,
-          {
-            maximumFractionDigits:4
-          }
-        )}
-        MRX
-      </td>
-
-      <td>
-        ${Number(
-          user.referral_count || 0
-        )}
-      </td>
-
-      <td>
-        ${status}
-      </td>
-
-      <td>
-        ${formatDate(
-          user.created_at
-        )}
-      </td>
-
-      <td>
-        <button
-          class="blue"
-          onclick="openUser(
-            '${escapeHTML(
-              user.telegram_id
-            )}'
-          )"
-        >
-          View
-        </button>
-      </td>
-
-    `;
-
-    tbody.appendChild(tr);
-
-  }
-
-}
-
-/* =========================================================
-   SEARCH CLEAR
-========================================================= */
-
-function clearSearch(){
-
-  document
-    .getElementById(
-      "userSearch"
-    )
-    .value = "";
-
-  loadUsers();
-
-}
-
-/* =========================================================
-   USER DETAILS
-========================================================= */
-
-async function openUser(
-  telegramId
-){
-
-  try{
-
-    const data =
-      await api(
-        `${API}/api/admin/users/${encodeURIComponent(
-          telegramId
-        )}`
-      );
-
-    selectedUser =
-      data.user;
-
-    const user =
-      data.user;
-
-    document
-      .getElementById(
-        "userDetails"
-      )
-      .innerHTML = `
-
-        <div class="detail-grid">
-
-          <div class="detail">
-            <div class="small">
-              Telegram ID
-            </div>
-            <b>
-              ${escapeHTML(
-                user.telegram_id
-              )}
-            </b>
-          </div>
-
-          <div class="detail">
-            <div class="small">
-              Username
-            </div>
-            <b>
-              ${
-                user.username
-                  ? "@" +
-                    escapeHTML(
-                      user.username
-                    )
-                  : "-"
-              }
-            </b>
-          </div>
-
-          <div class="detail">
-            <div class="small">
-              Name
-            </div>
-            <b>
-              ${escapeHTML(
-                `${user.first_name || ""} ${user.last_name || ""}`
-              )}
-            </b>
-          </div>
-
-          <div class="detail">
-            <div class="small">
-              Balance
-            </div>
-            <b>
-              ${Number(
-                user.balance || 0
-              ).toLocaleString(
-                undefined,
-                {
-                  maximumFractionDigits:8
-                }
-              )}
-              MRX
-            </b>
-          </div>
-
-          <div class="detail">
-            <div class="small">
-              Referrals
-            </div>
-            <b>
-              ${Number(
-                user.referral_count || 0
-              )}
-            </b>
-          </div>
-
-          <div class="detail">
-            <div class="small">
-              Referral Earnings
-            </div>
-            <b>
-              ${Number(
-                user.referral_earnings || 0
-              ).toLocaleString()}
-              MRX
-            </b>
-          </div>
-
-          <div class="detail">
-            <div class="small">
-              Status
-            </div>
-            <b>
-              ${
-                user.blocked
-                  ? "🚫 BLOCKED"
-                  : "✅ ACTIVE"
-              }
-            </b>
-          </div>
-
-          <div class="detail">
-            <div class="small">
-              Created
-            </div>
-            <b>
-              ${formatDate(
-                user.created_at
-              )}
-            </b>
-          </div>
-
-        </div>
-
-        <br>
-
-        <h3>
-          📜 Recent Transactions
-        </h3>
-
-        ${
-          data.transactions.length
-            ? `
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Amount</th>
-                      <th>Note</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${data.transactions
-                      .slice(0,30)
-                      .map(
-                        x => `
-                          <tr>
-                            <td>
-                              ${escapeHTML(
-                                x.type
-                              )}
-                            </td>
-                            <td>
-                              ${Number(
-                                x.amount || 0
-                              ).toLocaleString()}
-                            </td>
-                            <td>
-                              ${escapeHTML(
-                                x.note
-                              )}
-                            </td>
-                            <td>
-                              ${formatDate(
-                                x.created_at
-                              )}
-                            </td>
-                          </tr>
-                        `
-                      )
-                      .join("")}
-                  </tbody>
-                </table>
-              </div>
-            `
-            : "<p>No transactions.</p>"
-        }
-
-      `;
-
-    const blockButton =
-      document.getElementById(
-        "blockButton"
-      );
-
-    if(user.blocked){
-
-      blockButton.textContent =
-        "✅ Unblock User";
-
-      blockButton.className =
-        "blue";
-
-    }else{
-
-      blockButton.textContent =
-        "🚫 Block User";
-
-      blockButton.className =
-        "red";
-
+    body {
+      margin: 0;
+      padding: 0;
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
     }
 
-    document
-      .getElementById(
-        "userModal"
-      )
-      .classList.remove(
-        "hidden"
-      );
-
-  }catch(error){
-
-    alert(error.message);
-
-  }
-
-}
-
-/* =========================================================
-   BALANCE
-========================================================= */
-
-async function adjustBalance(){
-
-  if(!selectedUser){
-    return;
-  }
-
-  const amount =
-    Number(
-      document
-        .getElementById(
-          "balanceAmount"
-        )
-        .value
-    );
-
-  const note =
-    document
-      .getElementById(
-        "balanceNote"
-      )
-      .value
-      .trim();
-
-  if(
-    !Number.isFinite(amount) ||
-    amount === 0
-  ){
-
-    alert(
-      "Enter a valid non-zero amount."
-    );
-
-    return;
-  }
-
-  const action =
-    amount > 0
-      ? "ADD"
-      : "REMOVE";
-
-  if(
-    !confirm(
-      `${action} ${Math.abs(amount)} MRX ${
-        amount > 0
-          ? "to"
-          : "from"
-      } this user?`
-    )
-  ){
-
-    return;
-
-  }
-
-  try{
-
-    await api(
-      `${API}/api/admin/users/${encodeURIComponent(
-        selectedUser.telegram_id
-      )}/balance`,
-      {
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json"
-        },
-
-        body:
-          JSON.stringify({
-            amount,
-            note:
-              note ||
-              "Admin balance adjustment"
-          })
-      }
-    );
-
-    document
-      .getElementById(
-        "balanceAmount"
-      )
-      .value = "";
-
-    document
-      .getElementById(
-        "balanceNote"
-      )
-      .value = "";
-
-    alert(
-      "Balance updated successfully."
-    );
-
-    await openUser(
-      selectedUser.telegram_id
-    );
-
-    await loadStats();
-
-  }catch(error){
-
-    alert(
-      error.message
-    );
-
-  }
-
-}
-
-/* =========================================================
-   BLOCK
-========================================================= */
-
-async function toggleBlock(){
-
-  if(!selectedUser){
-    return;
-  }
-
-  const newStatus =
-    !Boolean(
-      selectedUser.blocked
-    );
-
-  const message =
-    newStatus
-      ? "Block this user?"
-      : "Unblock this user?";
-
-  if(!confirm(message)){
-    return;
-  }
-
-  try{
-
-    await api(
-      `${API}/api/admin/users/${encodeURIComponent(
-        selectedUser.telegram_id
-      )}/block`,
-      {
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json"
-        },
-
-        body:
-          JSON.stringify({
-            blocked:
-              newStatus
-          })
-      }
-    );
-
-    await openUser(
-      selectedUser.telegram_id
-    );
-
-    await loadUsers();
-
-    await loadStats();
-
-  }catch(error){
-
-    alert(
-      error.message
-    );
-
-  }
-
-}
-
-/* =========================================================
-   CLOSE MODAL
-========================================================= */
-
-function closeModal(){
-
-  document
-    .getElementById(
-      "userModal"
-    )
-    .classList.add(
-      "hidden"
-    );
-
-  selectedUser = null;
-
-}
-
-/* =========================================================
-   WITHDRAWALS
-========================================================= */
-
-async function loadWithdrawals(){
-
-  const status =
-    document
-      .getElementById(
-        "withdrawStatus"
-      )
-      .value;
-
-  const data =
-    await api(
-      `${API}/api/admin/withdrawals?status=${encodeURIComponent(
-        status
-      )}`
-    );
-
-  const tbody =
-    document.getElementById(
-      "withdrawalsTable"
-    );
-
-  tbody.innerHTML = "";
-
-  for(
-    const item of data.items
-  ){
-
-    const statusText =
-      String(
-        item.status || ""
-      );
-
-    let action = "-";
-
-    if(
-      statusText === "pending"
-    ){
-
-      action = `
-
-        <div class="actions">
-
-          <button
-            onclick="updateWithdrawal(
-              ${Number(item.id)},
-              'paid'
-            )"
-          >
-            ✅ Paid
-          </button>
-
-          <button
-            class="red"
-            onclick="updateWithdrawal(
-              ${Number(item.id)},
-              'rejected'
-            )"
-          >
-            ❌ Reject
-          </button>
-
-        </div>
-
-      `;
-
+    .container {
+      width: 100%;
+      max-width: 1300px;
+      margin: auto;
+      padding: 20px;
     }
 
-    tbody.innerHTML += `
-
-      <tr>
-
-        <td>
-          #${escapeHTML(
-            item.id
-          )}
-        </td>
-
-        <td>
-          ${
-            item.username
-              ? "@" +
-                escapeHTML(
-                  item.username
-                )
-              : escapeHTML(
-                  item.first_name ||
-                  item.telegram_id
-                )
-          }
-
-          <div class="small">
-            UID:
-            ${escapeHTML(
-              item.telegram_id
-            )}
-          </div>
-
-        </td>
-
-        <td>
-          ${Number(
-            item.amount_usdt || 0
-          ).toFixed(2)}
-          USDT
-        </td>
-
-        <td>
-          ${escapeHTML(
-            item.wallet
-          )}
-        </td>
-
-        <td>
-          <span
-            class="status ${escapeHTML(
-              statusText
-            )}"
-          >
-            ${escapeHTML(
-              statusText.toUpperCase()
-            )}
-          </span>
-        </td>
-
-        <td>
-          ${formatDate(
-            item.created_at
-          )}
-        </td>
-
-        <td>
-          ${action}
-        </td>
-
-      </tr>
-
-    `;
-
-  }
-
-}
-
-/* =========================================================
-   UPDATE WITHDRAWAL
-========================================================= */
-
-async function updateWithdrawal(
-  id,
-  status
-){
-
-  const message =
-    status === "paid"
-      ? "Mark this withdrawal as PAID?"
-      : "Reject this withdrawal? MRX will be refunded.";
-
-  if(!confirm(message)){
-    return;
-  }
-
-  try{
-
-    await api(
-      `/api/admin/withdrawals/${id}/status`,
-      {
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json"
-        },
-
-        body:
-          JSON.stringify({
-            status
-          })
-      }
-    );
-
-    alert(
-      `Withdrawal #${id} is now ${status}.`
-    );
-
-    await loadStats();
-    await loadWithdrawals();
-    await loadLogs();
-
-  }catch(error){
-
-    alert(
-      error.message
-    );
-
-  }
-
-}
-
-/* =========================================================
-   LOGS
-========================================================= */
-
-async function loadLogs(){
-
-  const data =
-    await api(
-      `${API}/api/admin/logs`
-    );
-
-  const tbody =
-    document.getElementById(
-      "logsTable"
-    );
-
-  tbody.innerHTML = "";
-
-  for(
-    const item of data.items
-  ){
-
-    tbody.innerHTML += `
-
-      <tr>
-
-        <td>
-          ${escapeHTML(
-            item.id
-          )}
-        </td>
-
-        <td>
-          ${escapeHTML(
-            item.action
-          )}
-        </td>
-
-        <td>
-          ${escapeHTML(
-            item.target
-          )}
-        </td>
-
-        <td>
-          ${escapeHTML(
-            item.details
-          )}
-        </td>
-
-        <td>
-          ${formatDate(
-            item.created_at
-          )}
-        </td>
-
-      </tr>
-
-    `;
-
-  }
-
-}
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-async function logout(){
-
-  try{
-
-    if(adminSession){
-
-      await fetch(
-        `${API}/api/admin/logout`,
-        {
-          method:"POST",
-
-          headers:{
-            "x-admin-session":
-              adminSession
-          }
-        }
-      );
-
+    h1 {
+      margin: 0 0 20px;
+      font-size: 28px;
     }
 
-  }catch{}
+    h2 {
+      margin-top: 0;
+    }
 
-  adminSession = "";
+    .box {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow:
+        0 4px 15px rgba(0,0,0,0.2);
+    }
 
-  sessionStorage.removeItem(
-    "minerush_admin_session"
-  );
+    input,
+    button {
+      width: 100%;
+      padding: 13px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 9px;
+      font-size: 15px;
+    }
 
-  closeModal();
+    input {
+      background: #334155;
+      color: #fff;
+      outline: none;
+    }
 
-  showLogin();
+    input::placeholder {
+      color: #94a3b8;
+    }
 
-}
+    button {
+      background: #22c55e;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-/* =========================================================
-   AUTO SESSION
-========================================================= */
+    button:hover {
+      opacity: 0.9;
+    }
 
-const savedSession =
-  sessionStorage.getItem(
-    "minerush_admin_session"
-  );
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
-if(savedSession){
+    .logout {
+      background: #ef4444;
+    }
 
-  adminSession =
-    savedSession;
+    .refresh {
+      background: #2563eb;
+    }
 
-  api(
-    `${API}/api/admin/test`
-  )
-  .then(() => {
+    .reject {
+      background: #dc2626;
+    }
 
-    showDashboard();
+    .message {
+      display: none;
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
 
-    loadAll();
+    .success {
+      display: block;
+      background: #166534;
+    }
 
-  })
-  .catch(() => {
+    .error {
+      display: block;
+      background: #991b1b;
+    }
 
-    adminSession = "";
+    .dashboard {
+      display: none;
+    }
 
-    sessionStorage.removeItem(
-      "minerush_admin_session"
-    );
+    .stats {
+      display: grid;
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(200px, 1fr)
+        );
+      gap: 15px;
+      margin-bottom: 20px;
+    }
 
-    showLogin();
+    .stat {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow:
+        0 4px 15px rgba(0,0,0,0.15);
+    }
 
-  });
+    .stat-title {
+      color: #94a3b8;
+      font-size: 14px;
+    }
 
-}
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      margin-top: 8px;
+      word-break: break-word;
+    }
 
-</script>
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
 
-</body>
-  </html>
+    table {
+      width: 100%;
+      min-width: 850px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom:
+        1px solid #334155;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      color: #94a3b8;
+      background: #172033;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover td {
+      background: #243247;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .status-pending {
+      background: #92400e;
+      color: #fef3c7;
+    }
+
+    .status-paid {
+      background: #166534;
+      color: #dcfce7;
+    }
+
+    .status-re
